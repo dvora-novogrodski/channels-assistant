@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import type { ChatMessage, ErrorKind, ProposalView } from '@app/shared';
+import type { ChatMessage, ErrorKind, ProposalView, ResolveProposalResponse } from '@app/shared';
+import { NotFoundError } from './errors.js';
 import { LlmError, type Llm, type LlmMessage, type LlmReply } from './llm/types.js';
+import { applyDecision, parseDecision, type ProposalDecision } from './proposals.js';
 import type { Conversation, ConversationStore, Proposal, StoredMessage } from './store.js';
 import { executeToolCall, toolSpecs, type ToolContext, type ToolEffect } from './tools.js';
 
@@ -47,6 +49,13 @@ export class TripAssistant {
     const conversation = this.store.getConversation(userId, conversationId);
     if (conversation.busy) return { reply: this.errorReply('busy') };
 
+    const decision = parseDecision(text);
+    const pendingProposal = findPendingProposal(conversation);
+    if (decision && pendingProposal) {
+      const reply = this.resolve(userId, conversation, pendingProposal, decision, text);
+      return { reply, updatedProposal: { ...pendingProposal } };
+    }
+
     conversation.busy = true;
     try {
       return await this.runTurn(userId, conversation, text);
@@ -55,6 +64,43 @@ export class TripAssistant {
     } finally {
       conversation.busy = false;
     }
+  }
+
+  resolveProposal(
+    userId: string,
+    conversationId: string,
+    proposalId: string,
+    decision: ProposalDecision,
+  ): ResolveProposalResponse {
+    const conversation = this.store.getConversation(userId, conversationId);
+    const proposal = conversation.proposals.find(({ id }) => id === proposalId);
+    if (!proposal) throw new NotFoundError('Proposal not found');
+    if (conversation.busy) return { proposal: { ...proposal }, reply: this.errorReply('busy') };
+
+    const reply = this.resolve(userId, conversation, proposal, decision);
+    return { proposal: { ...proposal }, reply };
+  }
+
+  private resolve(
+    userId: string,
+    conversation: Conversation,
+    proposal: Proposal,
+    decision: ProposalDecision,
+    typedText?: string,
+  ): ChatMessage {
+    const outcome = applyDecision(this.store.getUser(userId), proposal, decision, this.now());
+    const reply = this.message('assistant', outcome.text);
+    if (!outcome.changed) return withoutProposalId(reply);
+
+    // Recorded as a user/assistant pair so the model knows the outcome and the history keeps alternating roles.
+    const buttonNote = `(I pressed ${decision === 'confirm' ? 'Confirm' : 'Cancel'} on the ${proposal.destinationName} proposal.)`;
+    conversation.llmHistory.push(
+      { role: 'user', text: typedText ?? buttonNote },
+      { role: 'assistant', text: outcome.text, toolCalls: [] },
+    );
+    if (typedText) this.store.appendMessage(conversation, this.message('user', typedText));
+    this.store.appendMessage(conversation, reply);
+    return withoutProposalId(reply);
   }
 
   private async runTurn(userId: string, conversation: Conversation, text: string): Promise<TurnResult> {
@@ -112,11 +158,15 @@ export class TripAssistant {
   }
 }
 
+function findPendingProposal(conversation: Conversation): Proposal | undefined {
+  return conversation.proposals.find(({ status }) => status === 'proposed');
+}
+
 function applyEffects(conversation: Conversation, effects: ToolEffect[]) {
   const latest = effects.at(-1)?.proposal;
   if (!latest) return {};
 
-  const superseded = conversation.proposals.find(({ status }) => status === 'proposed');
+  const superseded = findPendingProposal(conversation);
   if (superseded) superseded.status = 'superseded';
   conversation.proposals.push(latest);
   return { proposal: latest, superseded };
@@ -131,7 +181,7 @@ export function recentHistory(messages: LlmMessage[]): LlmMessage[] {
 
 function toErrorKind(error: unknown): ErrorKind {
   if (error instanceof LlmError) {
-    if (error.kind === 'bad_request') console.error('LLM rejected the request', error.message);
+    console.warn(`LLM call failed (${error.kind}): ${error.message}`);
     return error.kind === 'bad_request' ? 'internal' : error.kind;
   }
   console.error('Assistant turn failed', error);
