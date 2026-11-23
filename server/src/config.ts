@@ -5,12 +5,18 @@ const optionalString = z
   .optional()
   .transform((value) => value?.trim() || undefined);
 
+function optionalToken(prefix: string) {
+  return optionalString.refine((value) => value === undefined || (value.startsWith(prefix) && value.length > prefix.length), {
+    message: `must start with ${prefix}`,
+  });
+}
+
 const EnvSchema = z.object({
   GEMINI_API_KEY: z.string().trim().min(1, 'GEMINI_API_KEY is required (see .env.example)'),
   LLM_MODEL: z.string().trim().min(1).default('gemini-flash-lite-latest'),
   LLM_FALLBACK_MODEL: optionalString,
-  SLACK_BOT_TOKEN: optionalString,
-  SLACK_APP_TOKEN: optionalString,
+  SLACK_BOT_TOKEN: optionalToken('xoxb-'),
+  SLACK_APP_TOKEN: optionalToken('xapp-'),
   PORT: z.coerce.number().int().positive().default(3000),
   DEMO_FAILURES: z
     .enum(['true', 'false'])

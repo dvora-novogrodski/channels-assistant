@@ -15,6 +15,7 @@
     "@app/shared": "*",
     "@google/genai": "^1.20.0",
     "@slack/bolt": "^4.4.0",
+    "@slack/types": "^2.22.0",
     "express": "^5.1.0",
     "zod": "^4.1.0"
   },
