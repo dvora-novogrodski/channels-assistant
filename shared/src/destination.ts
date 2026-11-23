@@ -36,7 +36,9 @@ export const DestinationSchema = z.object({
   bestMonths: z.array(z.number().int().min(1).max(12)).min(1),
   budgetTier: z.enum(BUDGET_TIERS),
   dailyCostUsd: z.number().positive(), // rough, per person per day
-  idealDays: z.object({ min: z.number().int().positive(), max: z.number().int().positive() }),
+  idealDays: z
+    .object({ min: z.number().int().positive(), max: z.number().int().positive() })
+    .refine(({ min, max }) => min <= max, { message: 'idealDays.min must be <= idealDays.max' }),
   tags: z.array(z.enum(TAGS)).min(1),
   highlights: z.array(z.string()).min(1),
   notes: z.string(),

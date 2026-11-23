@@ -1,0 +1,578 @@
+[
+  {
+    "id": "lisbon-pt",
+    "name": "Lisbon",
+    "country": "Portugal",
+    "region": "Europe",
+    "bestMonths": [3, 4, 5, 6, 9, 10],
+    "budgetTier": "mid",
+    "dailyCostUsd": 140,
+    "idealDays": { "min": 3, "max": 5 },
+    "tags": ["city", "food", "culture", "nightlife"],
+    "highlights": [
+      "Tiled lanes and Fado bars of Alfama",
+      "Belém Tower and fresh pastéis de nata",
+      "Day trip to the palaces of Sintra",
+      "Sunset from Miradouro da Senhora do Monte"
+    ],
+    "notes": "Steep cobbled streets, so pack comfortable shoes. July and August are hot and crowded."
+  },
+  {
+    "id": "barcelona-es",
+    "name": "Barcelona",
+    "country": "Spain",
+    "region": "Europe",
+    "bestMonths": [4, 5, 6, 9, 10],
+    "budgetTier": "mid",
+    "dailyCostUsd": 170,
+    "idealDays": { "min": 3, "max": 5 },
+    "tags": ["city", "beach", "food", "nightlife", "culture"],
+    "highlights": [
+      "Sagrada Família and Park Güell",
+      "Wandering the Gothic Quarter",
+      "Barceloneta beach",
+      "Tapas crawl in El Born"
+    ],
+    "notes": "Book Sagrada Família and Park Güell tickets in advance. Watch for pickpockets around Las Ramblas."
+  },
+  {
+    "id": "santorini-gr",
+    "name": "Santorini",
+    "country": "Greece",
+    "region": "Europe",
+    "bestMonths": [5, 6, 9, 10],
+    "budgetTier": "luxury",
+    "dailyCostUsd": 260,
+    "idealDays": { "min": 3, "max": 5 },
+    "tags": ["beach", "romantic"],
+    "highlights": [
+      "Sunset over the caldera in Oia",
+      "Catamaran trip around the volcano",
+      "Bronze Age ruins of Akrotiri",
+      "Red and black volcanic beaches"
+    ],
+    "notes": "Many hotels and ferry routes close from November to March. Cliffside hotels often involve lots of stairs."
+  },
+  {
+    "id": "reykjavik-is",
+    "name": "Reykjavik",
+    "country": "Iceland",
+    "region": "Europe",
+    "bestMonths": [2, 3, 6, 7, 8, 9],
+    "budgetTier": "luxury",
+    "dailyCostUsd": 250,
+    "idealDays": { "min": 5, "max": 8 },
+    "tags": ["nature", "adventure"],
+    "highlights": [
+      "Golden Circle: Þingvellir, Geysir and Gullfoss",
+      "Northern lights from September to March",
+      "Waterfalls and black sand beaches of the South Coast",
+      "Geothermal lagoons"
+    ],
+    "notes": "Weather changes quickly; rent a 4x4 for winter driving. One of the most expensive destinations in Europe."
+  },
+  {
+    "id": "prague-cz",
+    "name": "Prague",
+    "country": "Czechia",
+    "region": "Europe",
+    "bestMonths": [4, 5, 6, 9, 10, 12],
+    "budgetTier": "budget",
+    "dailyCostUsd": 85,
+    "idealDays": { "min": 3, "max": 4 },
+    "tags": ["city", "culture", "nightlife"],
+    "highlights": [
+      "Charles Bridge at dawn",
+      "Prague Castle and St. Vitus Cathedral",
+      "Old Town Square and the astronomical clock",
+      "Christmas markets in December"
+    ],
+    "notes": "The currency is the Czech koruna; avoid exchange booths at the airport and on tourist streets."
+  },
+  {
+    "id": "amalfi-coast-it",
+    "name": "Amalfi Coast",
+    "country": "Italy",
+    "region": "Europe",
+    "bestMonths": [5, 6, 9],
+    "budgetTier": "luxury",
+    "dailyCostUsd": 280,
+    "idealDays": { "min": 4, "max": 6 },
+    "tags": ["beach", "romantic", "food"],
+    "highlights": [
+      "Pastel houses of Positano",
+      "Path of the Gods hike",
+      "Cliff-top gardens of Ravello",
+      "Boat day trip to Capri"
+    ],
+    "notes": "The coastal road is narrow and congested; ferries are easier in summer. Many hotels close from November to March."
+  },
+  {
+    "id": "interlaken-ch",
+    "name": "Interlaken",
+    "country": "Switzerland",
+    "region": "Europe",
+    "bestMonths": [1, 2, 6, 7, 8, 9],
+    "budgetTier": "luxury",
+    "dailyCostUsd": 300,
+    "idealDays": { "min": 4, "max": 7 },
+    "tags": ["nature", "adventure", "winter-sports", "family"],
+    "highlights": [
+      "Train to Jungfraujoch, the 'Top of Europe'",
+      "Paragliding over the lakes",
+      "Boat ride on turquoise Lake Brienz",
+      "Skiing around Grindelwald and Wengen"
+    ],
+    "notes": "Mountain trains are expensive; a Swiss Travel Pass or regional pass can reduce transport costs."
+  },
+  {
+    "id": "edinburgh-gb",
+    "name": "Edinburgh",
+    "country": "United Kingdom",
+    "region": "Europe",
+    "bestMonths": [5, 6, 7, 8, 9],
+    "budgetTier": "mid",
+    "dailyCostUsd": 180,
+    "idealDays": { "min": 3, "max": 4 },
+    "tags": ["city", "culture", "nature"],
+    "highlights": [
+      "Edinburgh Castle and the Royal Mile",
+      "Hike up Arthur's Seat",
+      "Festival Fringe in August",
+      "Day trip to the Scottish Highlands"
+    ],
+    "notes": "Accommodation prices rise sharply during the August festivals, so book early."
+  },
+  {
+    "id": "kyoto-jp",
+    "name": "Kyoto",
+    "country": "Japan",
+    "region": "Asia",
+    "bestMonths": [3, 4, 10, 11],
+    "budgetTier": "mid",
+    "dailyCostUsd": 160,
+    "idealDays": { "min": 3, "max": 5 },
+    "tags": ["culture", "food", "nature"],
+    "highlights": [
+      "Thousands of torii gates at Fushimi Inari",
+      "Arashiyama bamboo grove",
+      "Evening walk through the Gion district",
+      "Kiyomizu-dera temple"
+    ],
+    "notes": "Cherry blossom season (early April) and autumn leaves (November) are very busy; book months ahead."
+  },
+  {
+    "id": "tokyo-jp",
+    "name": "Tokyo",
+    "country": "Japan",
+    "region": "Asia",
+    "bestMonths": [3, 4, 5, 10, 11],
+    "budgetTier": "mid",
+    "dailyCostUsd": 180,
+    "idealDays": { "min": 4, "max": 6 },
+    "tags": ["city", "food", "nightlife", "family"],
+    "highlights": [
+      "Shibuya Crossing and Shinjuku at night",
+      "Tsukiji Outer Market food stalls",
+      "Senso-ji temple in Asakusa",
+      "Day trip to Hakone or Nikko"
+    ],
+    "notes": "Get a rechargeable IC card for trains. July and August are hot and humid."
+  },
+  {
+    "id": "bali-id",
+    "name": "Bali",
+    "country": "Indonesia",
+    "region": "Asia",
+    "bestMonths": [4, 5, 6, 7, 8, 9, 10],
+    "budgetTier": "budget",
+    "dailyCostUsd": 70,
+    "idealDays": { "min": 7, "max": 12 },
+    "tags": ["beach", "nature", "culture", "romantic"],
+    "highlights": [
+      "Rice terraces around Ubud",
+      "Sunset at Uluwatu temple",
+      "Surfing in Canggu",
+      "Sunrise trek up Mount Batur"
+    ],
+    "notes": "Rainy season runs roughly November to March. A tourist levy is charged on arrival."
+  },
+  {
+    "id": "chiang-mai-th",
+    "name": "Chiang Mai",
+    "country": "Thailand",
+    "region": "Asia",
+    "bestMonths": [1, 2, 11, 12],
+    "budgetTier": "budget",
+    "dailyCostUsd": 45,
+    "idealDays": { "min": 4, "max": 7 },
+    "tags": ["culture", "food", "nature", "adventure"],
+    "highlights": [
+      "Doi Suthep temple above the city",
+      "Night bazaars and street food",
+      "Ethical elephant sanctuary visit",
+      "Thai cooking class"
+    ],
+    "notes": "Avoid March and April, when crop burning causes poor air quality. Choose sanctuaries that don't offer elephant rides."
+  },
+  {
+    "id": "hanoi-ha-long-vn",
+    "name": "Hanoi & Ha Long Bay",
+    "country": "Vietnam",
+    "region": "Asia",
+    "bestMonths": [3, 4, 10, 11],
+    "budgetTier": "budget",
+    "dailyCostUsd": 50,
+    "idealDays": { "min": 4, "max": 6 },
+    "tags": ["city", "food", "nature", "culture"],
+    "highlights": [
+      "Street food in Hanoi's Old Quarter",
+      "Overnight cruise in Ha Long Bay",
+      "Hoan Kiem Lake at sunrise",
+      "Egg coffee in a hidden café"
+    ],
+    "notes": "Northern winters (December to February) can be cool and grey. Check e-visa requirements before travel."
+  },
+  {
+    "id": "maldives-mv",
+    "name": "Maldives",
+    "country": "Maldives",
+    "region": "Asia",
+    "bestMonths": [1, 2, 3, 4, 11, 12],
+    "budgetTier": "luxury",
+    "dailyCostUsd": 450,
+    "idealDays": { "min": 5, "max": 8 },
+    "tags": ["beach", "romantic", "nature"],
+    "highlights": [
+      "Overwater villa stay",
+      "Snorkeling with manta rays",
+      "Private sandbank picnic",
+      "Sunset dolphin cruise"
+    ],
+    "notes": "Resorts are reached by speedboat or seaplane, which adds noticeable cost. May to October brings more rain."
+  },
+  {
+    "id": "seoul-kr",
+    "name": "Seoul",
+    "country": "South Korea",
+    "region": "Asia",
+    "bestMonths": [4, 5, 9, 10, 11],
+    "budgetTier": "mid",
+    "dailyCostUsd": 130,
+    "idealDays": { "min": 4, "max": 6 },
+    "tags": ["city", "food", "culture", "nightlife"],
+    "highlights": [
+      "Gyeongbokgung Palace in hanbok",
+      "Bukchon Hanok Village",
+      "Street food in Myeongdong and Gwangjang Market",
+      "Guided tour to the DMZ"
+    ],
+    "notes": "Check entry authorization requirements before booking. A T-money card covers subway and buses."
+  },
+  {
+    "id": "dubai-ae",
+    "name": "Dubai",
+    "country": "United Arab Emirates",
+    "region": "Middle East",
+    "bestMonths": [1, 2, 3, 11, 12],
+    "budgetTier": "luxury",
+    "dailyCostUsd": 250,
+    "idealDays": { "min": 3, "max": 5 },
+    "tags": ["city", "beach", "family", "adventure"],
+    "highlights": [
+      "View from the Burj Khalifa",
+      "Desert safari with dune bashing",
+      "Dubai Fountain show",
+      "Old Dubai souks and an abra boat ride"
+    ],
+    "notes": "Summer temperatures regularly exceed 40°C. Dress modestly in traditional areas."
+  },
+  {
+    "id": "petra-wadi-rum-jo",
+    "name": "Petra & Wadi Rum",
+    "country": "Jordan",
+    "region": "Middle East",
+    "bestMonths": [3, 4, 5, 10, 11],
+    "budgetTier": "mid",
+    "dailyCostUsd": 120,
+    "idealDays": { "min": 3, "max": 5 },
+    "tags": ["culture", "adventure", "nature"],
+    "highlights": [
+      "The Treasury through the Siq",
+      "Hike to the Monastery",
+      "Night in a Wadi Rum desert camp",
+      "Floating in the Dead Sea"
+    ],
+    "notes": "The Jordan Pass bundles the visa fee and Petra entry for eligible stays. Petra involves many hours of walking."
+  },
+  {
+    "id": "marrakech-ma",
+    "name": "Marrakech",
+    "country": "Morocco",
+    "region": "Africa",
+    "bestMonths": [3, 4, 5, 10, 11],
+    "budgetTier": "budget",
+    "dailyCostUsd": 75,
+    "idealDays": { "min": 3, "max": 5 },
+    "tags": ["culture", "food", "adventure"],
+    "highlights": [
+      "Evening on Jemaa el-Fnaa square",
+      "Majorelle Garden",
+      "Stay in a traditional riad",
+      "Day trip into the Atlas Mountains"
+    ],
+    "notes": "Haggling is expected in the souks. Summers are very hot."
+  },
+  {
+    "id": "cape-town-za",
+    "name": "Cape Town",
+    "country": "South Africa",
+    "region": "Africa",
+    "bestMonths": [1, 2, 3, 11, 12],
+    "budgetTier": "mid",
+    "dailyCostUsd": 120,
+    "idealDays": { "min": 5, "max": 8 },
+    "tags": ["nature", "food", "beach", "adventure"],
+    "highlights": [
+      "Cable car or hike up Table Mountain",
+      "Drive to Cape Point",
+      "Penguins at Boulders Beach",
+      "Wine tasting in Stellenbosch"
+    ],
+    "notes": "Seasons are reversed: December to February is summer. Use rideshares rather than walking at night."
+  },
+  {
+    "id": "serengeti-zanzibar-tz",
+    "name": "Serengeti & Zanzibar",
+    "country": "Tanzania",
+    "region": "Africa",
+    "bestMonths": [1, 2, 6, 7, 8, 9, 10],
+    "budgetTier": "luxury",
+    "dailyCostUsd": 380,
+    "idealDays": { "min": 7, "max": 10 },
+    "tags": ["nature", "adventure", "beach"],
+    "highlights": [
+      "Game drives during the Great Migration",
+      "Ngorongoro Crater",
+      "Stone Town in Zanzibar",
+      "White sand beaches of Nungwi"
+    ],
+    "notes": "Check visa and vaccination requirements well ahead. The long rains (April and May) make some roads difficult."
+  },
+  {
+    "id": "cairo-luxor-eg",
+    "name": "Cairo & Luxor",
+    "country": "Egypt",
+    "region": "Africa",
+    "bestMonths": [1, 2, 3, 10, 11, 12],
+    "budgetTier": "budget",
+    "dailyCostUsd": 80,
+    "idealDays": { "min": 6, "max": 9 },
+    "tags": ["culture", "adventure"],
+    "highlights": [
+      "Pyramids of Giza",
+      "Grand Egyptian Museum",
+      "Valley of the Kings in Luxor",
+      "Felucca sail on the Nile"
+    ],
+    "notes": "Summer is extremely hot. Agree on prices with taxis and guides before starting."
+  },
+  {
+    "id": "new-york-us",
+    "name": "New York City",
+    "country": "United States",
+    "region": "North America",
+    "bestMonths": [4, 5, 6, 9, 10, 12],
+    "budgetTier": "luxury",
+    "dailyCostUsd": 280,
+    "idealDays": { "min": 4, "max": 6 },
+    "tags": ["city", "food", "culture", "nightlife", "family"],
+    "highlights": [
+      "Central Park by bike",
+      "A Broadway show",
+      "The Metropolitan Museum of Art",
+      "Walk across the Brooklyn Bridge"
+    ],
+    "notes": "Hotels are expensive and small. December is festive but very busy."
+  },
+  {
+    "id": "banff-ca",
+    "name": "Banff",
+    "country": "Canada",
+    "region": "North America",
+    "bestMonths": [1, 2, 6, 7, 8, 9],
+    "budgetTier": "mid",
+    "dailyCostUsd": 200,
+    "idealDays": { "min": 4, "max": 7 },
+    "tags": ["nature", "adventure", "winter-sports", "family"],
+    "highlights": [
+      "Lake Louise and Moraine Lake",
+      "Drive the Icefields Parkway",
+      "Banff Gondola",
+      "Skiing at Sunshine Village"
+    ],
+    "notes": "A national park pass is required. Moraine Lake is reached by shuttle rather than private car."
+  },
+  {
+    "id": "tulum-mx",
+    "name": "Tulum",
+    "country": "Mexico",
+    "region": "North America",
+    "bestMonths": [1, 2, 3, 4, 11, 12],
+    "budgetTier": "mid",
+    "dailyCostUsd": 150,
+    "idealDays": { "min": 4, "max": 7 },
+    "tags": ["beach", "nature", "culture", "romantic"],
+    "highlights": [
+      "Mayan ruins above the sea",
+      "Swimming in cenotes",
+      "Sian Ka'an Biosphere Reserve",
+      "Climbing at the Cobá ruins"
+    ],
+    "notes": "Hurricane season runs June to November. Sargassum seaweed can affect beaches in the warmer months."
+  },
+  {
+    "id": "maui-us",
+    "name": "Maui",
+    "country": "United States",
+    "region": "North America",
+    "bestMonths": [4, 5, 9, 10],
+    "budgetTier": "luxury",
+    "dailyCostUsd": 320,
+    "idealDays": { "min": 6, "max": 9 },
+    "tags": ["beach", "nature", "adventure", "romantic", "family"],
+    "highlights": [
+      "Road to Hana",
+      "Sunrise at Haleakalā",
+      "Snorkeling at Molokini Crater",
+      "Whale watching from December to April"
+    ],
+    "notes": "Haleakalā sunrise requires an advance reservation. A rental car is essentially required."
+  },
+  {
+    "id": "costa-rica-cr",
+    "name": "Arenal & Monteverde",
+    "country": "Costa Rica",
+    "region": "North America",
+    "bestMonths": [1, 2, 3, 4, 12],
+    "budgetTier": "mid",
+    "dailyCostUsd": 130,
+    "idealDays": { "min": 7, "max": 10 },
+    "tags": ["nature", "adventure", "family", "beach"],
+    "highlights": [
+      "Arenal Volcano and hot springs",
+      "Hanging bridges in the Monteverde cloud forest",
+      "Ziplining over the canopy",
+      "Wildlife at Manuel Antonio National Park"
+    ],
+    "notes": "May to November is the cheaper 'green season' with afternoon rain. A 4x4 is recommended for rural roads."
+  },
+  {
+    "id": "cusco-machu-picchu-pe",
+    "name": "Cusco & Machu Picchu",
+    "country": "Peru",
+    "region": "South America",
+    "bestMonths": [4, 5, 6, 7, 8, 9, 10],
+    "budgetTier": "mid",
+    "dailyCostUsd": 110,
+    "idealDays": { "min": 5, "max": 8 },
+    "tags": ["culture", "adventure", "nature"],
+    "highlights": [
+      "Sunrise at Machu Picchu",
+      "Markets and ruins of the Sacred Valley",
+      "Rainbow Mountain hike",
+      "San Pedro Market in Cusco"
+    ],
+    "notes": "Cusco is at about 3,400 m, so plan a day to acclimatize. Machu Picchu tickets and Inca Trail permits sell out."
+  },
+  {
+    "id": "rio-de-janeiro-br",
+    "name": "Rio de Janeiro",
+    "country": "Brazil",
+    "region": "South America",
+    "bestMonths": [2, 3, 4, 5, 9, 10],
+    "budgetTier": "mid",
+    "dailyCostUsd": 120,
+    "idealDays": { "min": 4, "max": 6 },
+    "tags": ["beach", "city", "nightlife", "nature"],
+    "highlights": [
+      "Christ the Redeemer",
+      "Cable car up Sugarloaf Mountain",
+      "Copacabana and Ipanema beaches",
+      "Samba nights in Lapa"
+    ],
+    "notes": "Prices jump during Carnival (February or March). Keep valuables out of sight on the beach."
+  },
+  {
+    "id": "buenos-aires-ar",
+    "name": "Buenos Aires",
+    "country": "Argentina",
+    "region": "South America",
+    "bestMonths": [3, 4, 5, 9, 10, 11],
+    "budgetTier": "budget",
+    "dailyCostUsd": 80,
+    "idealDays": { "min": 3, "max": 5 },
+    "tags": ["city", "food", "nightlife", "culture"],
+    "highlights": [
+      "Tango in San Telmo",
+      "Steak dinner at a parrilla",
+      "Recoleta Cemetery",
+      "Colorful streets of La Boca"
+    ],
+    "notes": "Exchange rates can be volatile; compare paying by card versus cash before the trip."
+  },
+  {
+    "id": "torres-del-paine-cl",
+    "name": "Torres del Paine",
+    "country": "Chile",
+    "region": "South America",
+    "bestMonths": [1, 2, 3, 11, 12],
+    "budgetTier": "mid",
+    "dailyCostUsd": 200,
+    "idealDays": { "min": 5, "max": 9 },
+    "tags": ["nature", "adventure"],
+    "highlights": [
+      "Hiking the W Trek",
+      "Grey Glacier",
+      "Sunrise at the Base of the Towers",
+      "Guanacos and condors"
+    ],
+    "notes": "Campsites and refugios must be booked in advance. Expect very strong winds."
+  },
+  {
+    "id": "sydney-au",
+    "name": "Sydney",
+    "country": "Australia",
+    "region": "Oceania",
+    "bestMonths": [3, 4, 5, 9, 10, 11],
+    "budgetTier": "mid",
+    "dailyCostUsd": 200,
+    "idealDays": { "min": 4, "max": 6 },
+    "tags": ["city", "beach", "food", "family"],
+    "highlights": [
+      "Sydney Opera House and the harbour",
+      "Bondi to Coogee coastal walk",
+      "Sydney Harbour Bridge climb",
+      "Day trip to the Blue Mountains"
+    ],
+    "notes": "Most visitors need an electronic visa before arrival. The sun is strong; swim between the flags."
+  },
+  {
+    "id": "queenstown-nz",
+    "name": "Queenstown",
+    "country": "New Zealand",
+    "region": "Oceania",
+    "bestMonths": [1, 2, 3, 6, 7, 8, 12],
+    "budgetTier": "mid",
+    "dailyCostUsd": 190,
+    "idealDays": { "min": 5, "max": 8 },
+    "tags": ["adventure", "nature", "winter-sports", "romantic"],
+    "highlights": [
+      "Bungee jumping at Kawarau Bridge",
+      "Day trip to Milford Sound",
+      "Skiing at The Remarkables",
+      "Skyline gondola and luge"
+    ],
+    "notes": "Most visitors need an electronic travel authority. The road to Milford Sound can close in bad weather."
+  }
+]
