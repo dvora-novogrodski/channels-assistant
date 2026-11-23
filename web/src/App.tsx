@@ -1,27 +1,65 @@
-import { useEffect, useState } from 'react';
-import { Badge, Container, Title } from '@mantine/core';
-import { REGIONS } from '@app/shared';
+import { AppShell, Burger, Group, Text, ThemeIcon, Title } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
+import { IconPlaneTilt } from '@tabler/icons-react';
+import { ChatView } from './components/ChatView';
+import { ConversationList } from './components/ConversationList';
+import { useChat } from './useChat';
 
-// Step 1 placeholder: proves React + Mantine + the shared package + the /api proxy all work.
-// The real chat UI is built in step 8.
 export function App() {
-  const [status, setStatus] = useState<'checking' | 'ok' | 'down'>('checking');
+  const chat = useChat();
+  const [isNavbarOpen, { toggle: toggleNavbar, close: closeNavbar }] = useDisclosure();
 
-  useEffect(() => {
-    fetch('/api/health')
-      .then((r) => setStatus(r.ok ? 'ok' : 'down'))
-      .catch(() => setStatus('down'));
-  }, []);
+  function selectConversation(conversationId: string) {
+    chat.selectConversation(conversationId);
+    closeNavbar();
+  }
+
+  function startNewChat() {
+    chat.startNewChat();
+    closeNavbar();
+  }
 
   return (
-    <Container py="xl">
-      <Title order={2}>Travel Assistant</Title>
-      <Badge mt="md" color={status === 'ok' ? 'green' : status === 'down' ? 'red' : 'gray'}>
-        API: {status}
-      </Badge>
-      <Badge mt="md" ml="sm" variant="light">
-        shared: {REGIONS.length} regions
-      </Badge>
-    </Container>
+    <AppShell
+      header={{ height: 56 }}
+      navbar={{ width: 280, breakpoint: 'sm', collapsed: { mobile: !isNavbarOpen } }}
+      padding={0}
+    >
+      <AppShell.Header>
+        <Group h="100%" px="md" gap="sm" wrap="nowrap">
+          <Burger opened={isNavbarOpen} onClick={toggleNavbar} hiddenFrom="sm" size="sm" aria-label="Toggle chats" />
+          <ThemeIcon variant="light" radius="md">
+            <IconPlaneTilt size={18} />
+          </ThemeIcon>
+          <Title order={4}>Travel Assistant</Title>
+          <Text size="xs" c="dimmed" visibleFrom="sm">
+            Suggestions from sample data · bookings are simulated
+          </Text>
+        </Group>
+      </AppShell.Header>
+
+      <AppShell.Navbar p="sm">
+        <ConversationList
+          conversations={chat.conversations}
+          status={chat.conversationsStatus}
+          activeConversationId={chat.activeConversationId}
+          onSelect={selectConversation}
+          onNewChat={startNewChat}
+          onRetry={() => void chat.refreshConversations()}
+        />
+      </AppShell.Navbar>
+
+      <AppShell.Main style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
+        <ChatView
+          messages={chat.messages}
+          status={chat.messagesStatus}
+          isSending={chat.isSending}
+          onSend={(text) => void chat.sendMessage(text)}
+          onRetry={chat.retryMessage}
+          onReload={chat.reloadMessages}
+          onResolveProposal={chat.resolveProposal}
+        />
+      </AppShell.Main>
+    </AppShell>
   );
 }

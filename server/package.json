@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch --env-file-if-exists=../.env src/index.ts",
-    "start": "tsx --env-file-if-exists=../.env src/index.ts",
+    "dev": "tsx watch --use-system-ca --env-file-if-exists=../.env src/index.ts",
+    "start": "tsx --use-system-ca --env-file-if-exists=../.env src/index.ts",
     "test": "vitest run",
-    "smoke:gemini": "tsx --env-file-if-exists=../.env scripts/smoke-gemini.ts",
-    "smoke:assistant": "tsx --env-file-if-exists=../.env scripts/smoke-assistant.ts",
+    "smoke:gemini": "tsx --use-system-ca --env-file-if-exists=../.env scripts/smoke-gemini.ts",
+    "smoke:assistant": "tsx --use-system-ca --env-file-if-exists=../.env scripts/smoke-assistant.ts",
     "typecheck": "tsc -p ."
   },
   "dependencies": {
