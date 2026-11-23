@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Alert, Badge, Button, Card, Group, SimpleGrid, Stack, Text, ThemeIcon } from '@mantine/core';
-import { IconBed, IconCheck, IconX } from '@tabler/icons-react';
+import { Alert, Badge, Button, Card, Group, SimpleGrid, Stack, Text } from '@mantine/core';
+import { IconCheck, IconMapPin, IconX } from '@tabler/icons-react';
 import type { ProposalStatus, ProposalView } from '@app/shared';
 import type { ProposalDecision } from '../chatApi';
 import { formatTripDate, formatUsd } from '../formatTrip.util';
@@ -38,26 +38,17 @@ export function ProposalCard({ proposal, onDecision }: ProposalCardProps) {
   }
 
   return (
-    <Card
-      withBorder
-      radius="lg"
-      padding="md"
-      opacity={isInactive ? 0.6 : 1}
-      aria-label="Stay proposal"
-      style={{ borderLeft: `4px solid var(--mantine-color-${badge.color}-6)` }}
-    >
+    <Card withBorder radius="lg" padding="md" opacity={isInactive ? 0.6 : 1} aria-label="Trip proposal">
       <Stack gap="sm">
         <Group justify="space-between" align="flex-start" wrap="nowrap">
-          <Group gap="sm" wrap="nowrap">
-            <ThemeIcon variant="light" radius="md" size="lg">
-              <IconBed size={18} />
-            </ThemeIcon>
+          <Group gap="xs" wrap="nowrap">
+            <IconMapPin size={18} />
             <div>
-              <Text fw={700} ff="heading">
+              <Text fw={600}>
                 {proposal.destinationName}, {proposal.country}
               </Text>
               <Text size="xs" c="dimmed">
-                Stay · flights not included
+                Stay only · flights not included
               </Text>
             </div>
           </Group>
@@ -94,7 +85,7 @@ export function ProposalCard({ proposal, onDecision }: ProposalCardProps) {
                 disabled={pendingDecision === 'cancel'}
                 onClick={() => decide('confirm')}
               >
-                Confirm stay
+                Confirm booking
               </Button>
               <Button
                 variant="default"

@@ -3,7 +3,6 @@ import { Alert, Box, Button, Center, Container, Group, Loader, Paper, ScrollArea
 import { IconAlertCircle } from '@tabler/icons-react';
 import type { ProposalDecision } from '../chatApi';
 import type { LoadStatus, UiMessage } from '../useChat';
-import { BrandMark } from './BrandLogo';
 import { Composer } from './Composer';
 import { MessageBubble } from './MessageBubble';
 import { WelcomePanel } from './WelcomePanel';
@@ -64,12 +63,9 @@ export function ChatView({ messages, status, isSending, onSend, onRetry, onReloa
         </Container>
       </ScrollArea>
 
-      <Box py="sm">
+      <Box py="sm" style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}>
         <Container size="md">
           <Composer isSending={isSending} disabled={status !== 'ready'} onSend={onSend} />
-          <Text size="xs" c="dimmed" ta="center" mt={6}>
-            Wayfarer books stays only (no flights). Bookings are simulated and no payment is taken.
-          </Text>
         </Container>
       </Box>
     </>
@@ -78,13 +74,12 @@ export function ChatView({ messages, status, isSending, onSend, onRetry, onReloa
 
 function ThinkingIndicator() {
   return (
-    <Group justify="flex-start" align="flex-start" gap="sm">
-      <BrandMark size={30} />
-      <Paper px="md" py="sm" radius="lg" withBorder>
+    <Group justify="flex-start">
+      <Paper px="md" py="xs" radius="lg" bg="var(--mantine-color-default-hover)">
         <Group gap="xs">
           <Loader size="xs" type="dots" />
           <Text size="sm" c="dimmed">
-            Checking destinations…
+            Thinking…
           </Text>
         </Group>
       </Paper>

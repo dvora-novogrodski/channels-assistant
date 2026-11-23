@@ -1,11 +1,10 @@
-import { AppShell, Badge, Burger, Group } from '@mantine/core';
+import { AppShell, Box, Burger, Group, Text, ThemeIcon, Title } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { BrandLogo } from './components/BrandLogo';
+import { IconPlaneTilt } from '@tabler/icons-react';
 import { ChatView } from './components/ChatView';
 import { ColorSchemeToggle } from './components/ColorSchemeToggle';
 import { ConversationList } from './components/ConversationList';
 import { useChat } from './useChat';
-import classes from './App.module.css';
 
 export function App() {
   const chat = useChat();
@@ -23,26 +22,27 @@ export function App() {
 
   return (
     <AppShell
-      header={{ height: 64 }}
-      navbar={{ width: 288, breakpoint: 'sm', collapsed: { mobile: !isNavbarOpen } }}
+      header={{ height: 56 }}
+      navbar={{ width: 280, breakpoint: 'sm', collapsed: { mobile: !isNavbarOpen } }}
       padding={0}
     >
-      <AppShell.Header className={classes.header}>
-        <Group h="100%" px="md" justify="space-between" wrap="nowrap">
-          <Group gap="sm" wrap="nowrap">
-            <Burger opened={isNavbarOpen} onClick={toggleNavbar} hiddenFrom="sm" size="sm" aria-label="Toggle chats" />
-            <BrandLogo showTagline />
-          </Group>
-          <Group gap="sm" wrap="nowrap">
-            <Badge variant="light" color="gray" visibleFrom="md">
-              Sample data · simulated stays
-            </Badge>
+      <AppShell.Header>
+        <Group h="100%" px="md" gap="sm" wrap="nowrap">
+          <Burger opened={isNavbarOpen} onClick={toggleNavbar} hiddenFrom="sm" size="sm" aria-label="Toggle chats" />
+          <ThemeIcon variant="light" radius="md">
+            <IconPlaneTilt size={18} />
+          </ThemeIcon>
+          <Title order={4}>Travel Assistant</Title>
+          <Text size="xs" c="dimmed" visibleFrom="sm">
+            Suggestions from sample data · bookings are simulated
+          </Text>
+          <Box ml="auto">
             <ColorSchemeToggle />
-          </Group>
+          </Box>
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar p="sm" className={classes.navbar}>
+      <AppShell.Navbar p="sm">
         <ConversationList
           conversations={chat.conversations}
           status={chat.conversationsStatus}
@@ -53,7 +53,7 @@ export function App() {
         />
       </AppShell.Navbar>
 
-      <AppShell.Main className={classes.main}>
+      <AppShell.Main style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
         <ChatView
           messages={chat.messages}
           status={chat.messagesStatus}
