@@ -7,6 +7,7 @@
     "dev": "tsx watch --env-file-if-exists=../.env src/index.ts",
     "start": "tsx --env-file-if-exists=../.env src/index.ts",
     "test": "vitest run",
+    "smoke:gemini": "tsx --env-file-if-exists=../.env scripts/smoke-gemini.ts",
     "typecheck": "tsc -p ."
   },
   "dependencies": {
