@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { BUDGET_TIERS, REGIONS, TAGS } from '@app/shared';
-import { findDestination, searchDestinations } from './destinations.js';
+import { SEARCH_SORT_ORDERS, findDestination, searchDestinations } from './destinations.js';
 import type { ToolCall, ToolResult, ToolSpec } from './llm/types.js';
 import type { Conversation, Proposal, User } from './store.js';
 
@@ -54,14 +54,16 @@ function defineTool<TSchema extends z.ZodType>(definition: {
 const searchDestinationsTool = defineTool({
   name: 'search_destinations',
   description:
-    'Search the destination catalog. All filters are optional. Use `month` (1-12) for "when to go" questions; ' +
-    'returns at most 5 summaries plus the total number of matches.',
+    'Search the destination catalog. All filters are optional. Use `month` (1-12) for "when to go" questions and ' +
+    '`sortBy: "price"` for cheapest-first results. dailyCostUsd is a rough per-person daily cost (stay, food, local ' +
+    'transport; no flights). Returns at most 5 summaries plus the total number of matches.',
   schema: z.object({
     month: z.number().int().min(1).max(12).optional(),
     region: z.enum(REGIONS).optional(),
     budgetTier: z.enum(BUDGET_TIERS).optional(),
     tags: z.array(z.enum(TAGS)).optional(),
     maxDays: z.number().int().positive().optional(),
+    sortBy: z.enum(SEARCH_SORT_ORDERS).optional(),
   }),
   run: (filters) => ({ output: searchDestinations(filters) }),
 });
@@ -76,8 +78,9 @@ const getDestinationTool = defineTool({
 const proposeBookingTool = defineTool({
   name: 'propose_booking',
   description:
-    'Propose a simulated trip booking. This does NOT book anything: the user must confirm it with the ' +
-    'button or by replying "confirm". Proposing again replaces the previous pending proposal.',
+    'Propose a simulated booking of a STAY (accommodation and daily costs, no flights). This does NOT book ' +
+    'anything: the user must confirm it with the button or by replying "confirm". Proposing again replaces the ' +
+    'previous pending proposal.',
   schema: z.object({
     destinationId: z.string(),
     startDate: z.iso.date(),
@@ -101,7 +104,10 @@ const proposeBookingTool = defineTool({
       status: 'proposed',
     };
     return {
-      output: { ...proposal, note: 'Not booked yet. Ask the user to confirm with the button or by replying "confirm".' },
+      output: {
+        ...proposal,
+        note: 'Not booked yet. Covers the stay only, flights not included. Ask the user to confirm with the button or by replying "confirm".',
+      },
       effect: { type: 'propose', proposal },
     };
   },

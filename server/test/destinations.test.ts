@@ -54,6 +54,14 @@ describe('searchDestinations', () => {
     expect(results[0]?.id).toBe('amalfi-coast-it');
   });
 
+  it('sorts cheapest first when sorting by price', () => {
+    const { results } = searchDestinations({ month: 11, sortBy: 'price' });
+    const prices = results.map(({ dailyCostUsd }) => dailyCostUsd);
+
+    expect(results[0]?.id).toBe('chiang-mai-th');
+    expect(prices).toEqual([...prices].sort((a, b) => a - b));
+  });
+
   it('caps results but reports the total number of matches', () => {
     const { results, totalMatches } = searchDestinations({});
     expect(results).toHaveLength(MAX_SEARCH_RESULTS);

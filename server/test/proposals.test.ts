@@ -98,7 +98,7 @@ describe('proposal confirmation', () => {
 
     expect(llm.requests).toHaveLength(requestsBefore);
     expect(updatedProposal).toMatchObject({ id: proposalId, status: 'confirmed' });
-    expect(reply.text).toContain('Booked: Lisbon');
+    expect(reply.text).toContain('Stay booked: Lisbon');
     expect(store.listMessages(ALICE, conversation.id).map(({ role, text }) => `${role}:${text}`).slice(-2)).toEqual([
       'user:Confirm',
       `assistant:${reply.text}`,
@@ -114,7 +114,7 @@ describe('proposal confirmation', () => {
     const sentHistory = llm.requests.at(-1)?.messages ?? [];
     expect(sentHistory.slice(-3)).toEqual([
       { role: 'user', text: '(I pressed Confirm on the Lisbon proposal.)' },
-      { role: 'assistant', text: expect.stringContaining('Booked: Lisbon'), toolCalls: [] },
+      { role: 'assistant', text: expect.stringContaining('Stay booked: Lisbon'), toolCalls: [] },
       { role: 'user', text: 'What did I book?' },
     ]);
   });

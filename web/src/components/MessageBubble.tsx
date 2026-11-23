@@ -3,6 +3,7 @@ import { IconAlertTriangle, IconClockPause, IconRefresh, IconWifiOff } from '@ta
 import Markdown from 'react-markdown';
 import type { ProposalDecision } from '../chatApi';
 import type { UiErrorKind, UiMessage } from '../useChat';
+import { BrandMark } from './BrandLogo';
 import { ProposalCard } from './ProposalCard';
 import classes from './MessageBubble.module.css';
 
@@ -27,15 +28,10 @@ export function MessageBubble({ message, onRetry, onResolveProposal }: MessageBu
   const isUser = message.role === 'user';
   const { proposal } = message;
   return (
-    <Group justify={isUser ? 'flex-end' : 'flex-start'} wrap="nowrap">
+    <Group justify={isUser ? 'flex-end' : 'flex-start'} align="flex-start" gap="sm" wrap="nowrap">
+      {!isUser && <BrandMark size={30} />}
       <Stack gap="xs" maw="85%">
-        <Paper
-          px="md"
-          py="xs"
-          radius="lg"
-          bg={isUser ? 'blue.6' : 'var(--mantine-color-default-hover)'}
-          c={isUser ? 'white' : undefined}
-        >
+        <Paper px="md" py="sm" radius="lg" className={isUser ? classes.userBubble : classes.assistantBubble}>
           {isUser ? (
             <Text size="sm" className={classes.userText}>
               {message.text}
@@ -59,7 +55,8 @@ function ErrorBubble({ message, onRetry }: Pick<MessageBubbleProps, 'message' | 
   const Icon = presentation.icon;
 
   return (
-    <Group justify="flex-start" wrap="nowrap">
+    <Group justify="flex-start" align="flex-start" gap="sm" wrap="nowrap">
+      <BrandMark size={30} />
       <Alert
         maw="85%"
         radius="lg"

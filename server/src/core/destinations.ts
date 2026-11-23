@@ -9,6 +9,7 @@ import {
 import rawDestinations from '../../data/destinations.json' with { type: 'json' };
 
 export const MAX_SEARCH_RESULTS = 5;
+export const SEARCH_SORT_ORDERS = ['relevance', 'price'] as const;
 
 export interface DestinationFilters {
   month?: number;
@@ -16,6 +17,7 @@ export interface DestinationFilters {
   budgetTier?: BudgetTier;
   tags?: Tag[];
   maxDays?: number;
+  sortBy?: (typeof SEARCH_SORT_ORDERS)[number];
 }
 
 export type DestinationSummary = Pick<
@@ -48,9 +50,12 @@ export function searchDestinations(
   filters: DestinationFilters,
   source = destinations,
 ): DestinationSearchResult {
+  const byRelevance = (a: Destination, b: Destination) =>
+    countMatchingTags(b, filters.tags) - countMatchingTags(a, filters.tags);
+  const byPrice = (a: Destination, b: Destination) => a.dailyCostUsd - b.dailyCostUsd;
   const matches = source
     .filter((destination) => matchesFilters(destination, filters))
-    .sort((a, b) => countMatchingTags(b, filters.tags) - countMatchingTags(a, filters.tags));
+    .sort(filters.sortBy === 'price' ? byPrice : byRelevance);
 
   return {
     results: matches.slice(0, MAX_SEARCH_RESULTS).map(toSummary),

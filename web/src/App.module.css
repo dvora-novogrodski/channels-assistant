@@ -1,0 +1,11 @@
+.header,
+.navbar {
+  background: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+}
