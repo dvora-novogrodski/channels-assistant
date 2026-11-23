@@ -1,14 +1,27 @@
-import express from 'express';
+import path from 'node:path';
+import { createApp } from './app.js';
+import { loadConfig } from './config.js';
+import { TripAssistant } from './core/assistant.js';
+import { createGeminiLlm } from './core/llm/gemini.js';
+import { InMemoryConversationStore } from './core/store.js';
 
-// Step 1 placeholder: proves the server runs. Channels and core are wired in later steps.
-const app = express();
-app.use(express.json());
+const config = loadConfig();
 
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true });
+const store = new InMemoryConversationStore();
+const llm = createGeminiLlm({
+  apiKey: config.GEMINI_API_KEY,
+  model: config.LLM_MODEL,
+  fallbackModel: config.LLM_FALLBACK_MODEL,
+});
+const assistant = new TripAssistant({ store, llm, demoFailures: config.DEMO_FAILURES });
+
+const app = createApp({
+  store,
+  assistant,
+  webDistPath: path.resolve(import.meta.dirname, '../../web/dist'),
 });
 
-const port = Number(process.env.PORT ?? 3000);
-app.listen(port, () => {
-  console.log(`Server listening on http://localhost:${port}`);
+app.listen(config.PORT, () => {
+  const fallback = config.LLM_FALLBACK_MODEL ? `, fallback ${config.LLM_FALLBACK_MODEL}` : '';
+  console.log(`Server listening on http://localhost:${config.PORT} (model ${config.LLM_MODEL}${fallback})`);
 });
