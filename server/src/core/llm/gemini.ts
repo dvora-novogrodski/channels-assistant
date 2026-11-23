@@ -148,8 +148,16 @@ export function toLlmError(error: unknown): LlmError {
     if (error.status >= 500) return new LlmError('unavailable', error.message);
     return new LlmError('bad_request', error.message);
   }
-  const message = error instanceof Error ? error.message : String(error);
-  return new LlmError('unavailable', message);
+  return new LlmError('unavailable', describeNetworkError(error));
+}
+
+// Node's fetch reports every network failure as "fetch failed"; the real reason is on `cause`.
+function describeNetworkError(error: unknown): string {
+  if (!(error instanceof Error)) return String(error);
+  const cause = error.cause;
+  if (!(cause instanceof Error)) return error.message;
+  const code = 'code' in cause ? ` [${String(cause.code)}]` : '';
+  return `${error.message}: ${cause.message}${code}`;
 }
 
 function isPartList(value: unknown): value is Part[] {

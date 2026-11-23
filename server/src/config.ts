@@ -7,7 +7,7 @@ const optionalString = z
 
 const EnvSchema = z.object({
   GEMINI_API_KEY: z.string().trim().min(1, 'GEMINI_API_KEY is required (see .env.example)'),
-  LLM_MODEL: z.string().trim().min(1).default('gemini-2.5-flash'),
+  LLM_MODEL: z.string().trim().min(1).default('gemini-flash-lite-latest'),
   LLM_FALLBACK_MODEL: optionalString,
   SLACK_BOT_TOKEN: optionalString,
   SLACK_APP_TOKEN: optionalString,

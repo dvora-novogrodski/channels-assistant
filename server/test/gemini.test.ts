@@ -98,6 +98,14 @@ describe('toLlmError', () => {
   it('maps network errors and timeouts to unavailable', () => {
     expect(toLlmError(new TypeError('fetch failed')).kind).toBe('unavailable');
   });
+
+  it('includes the underlying network cause in the message', () => {
+    const cause = Object.assign(new Error('getaddrinfo ENOTFOUND example.com'), { code: 'ENOTFOUND' });
+
+    expect(toLlmError(new TypeError('fetch failed', { cause })).message).toBe(
+      'fetch failed: getaddrinfo ENOTFOUND example.com [ENOTFOUND]',
+    );
+  });
 });
 
 describe('FallbackLlm', () => {
@@ -108,19 +116,19 @@ describe('FallbackLlm', () => {
     return { generate: () => Promise.reject(error) };
   }
 
-  it('uses the fallback model when the primary is rate limited', async () => {
-    const llm = new FallbackLlm(failingLlm(new LlmError('rate_limit', '429')), {
+  it.each(['rate_limit', 'unavailable'] as const)('uses the fallback model when the primary fails with %s', async (kind) => {
+    const llm = new FallbackLlm(failingLlm(new LlmError(kind, 'primary failed')), {
       generate: () => Promise.resolve(okReply),
     });
 
     await expect(llm.generate(request)).resolves.toBe(okReply);
   });
 
-  it('does not use the fallback for other failures', async () => {
-    const llm = new FallbackLlm(failingLlm(new LlmError('unavailable', '503')), {
+  it.each(['blocked', 'bad_request'] as const)('does not use the fallback for %s', async (kind) => {
+    const llm = new FallbackLlm(failingLlm(new LlmError(kind, 'primary failed')), {
       generate: () => Promise.resolve(okReply),
     });
 
-    await expect(llm.generate(request)).rejects.toMatchObject({ kind: 'unavailable' });
+    await expect(llm.generate(request)).rejects.toMatchObject({ kind });
   });
 });
