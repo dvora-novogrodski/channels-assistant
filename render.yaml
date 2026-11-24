@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: travel-assistant
+    runtime: node
+    plan: free
+    branch: main
+    autoDeployTrigger: commit
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:hosted -w server
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: PORT
+        value: "10000"
+      - key: LLM_MODEL
+        value: gemini-flash-lite-latest
+      - key: LLM_FALLBACK_MODEL
+        value: gemini-3.1-flash-lite
+      - key: DEMO_FAILURES
+        value: "true"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SLACK_BOT_TOKEN
+        sync: false
+      - key: SLACK_APP_TOKEN
+        sync: false

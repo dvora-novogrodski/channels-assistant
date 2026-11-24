@@ -14,6 +14,8 @@ Go to <https://slack.com/get-started#/createnew> and sign up with your email. No
 
 The manifest enables Socket Mode, interactivity (for the Confirm / Cancel buttons), the Messages tab, the `message.im` event, and the bot scopes `chat:write`, `im:history`, `im:read`, `im:write`.
 
+It also keeps **token rotation off**. With rotation on, Slack issues `xoxe.xapp-…` tokens that expire every 12 hours and single-use refresh tokens, which a server without persistent storage cannot keep renewing. Rotation cannot be turned off once enabled, so if the App-Level Tokens section shows rotation on, create a fresh app from the manifest instead.
+
 ## 3. Get the two tokens
 
 | Variable | Where | Starts with |
@@ -21,7 +23,7 @@ The manifest enables Socket Mode, interactivity (for the Confirm / Cancel button
 | `SLACK_APP_TOKEN` | **Basic Information** → **App-Level Tokens** → **Generate Token and Scopes**, add the `connections:write` scope | `xapp-` |
 | `SLACK_BOT_TOKEN` | **Install App** → **Install to Workspace** → copy the **Bot User OAuth Token** | `xoxb-` |
 
-Put both in `.env`. The server checks the prefixes at startup, so swapped tokens fail with a clear message.
+Put both in `.env`. The server checks the prefixes at startup, so swapped tokens fail with a clear message. If the app token starts with `xoxe.xapp-`, rotation is on and the bot will stop reconnecting after about 12 hours (see step 2).
 
 ## 4. Run and chat
 

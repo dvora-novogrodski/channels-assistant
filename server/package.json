@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch --use-system-ca --env-file-if-exists=../.env src/index.ts",
     "start": "tsx --use-system-ca --env-file-if-exists=../.env src/index.ts",
+    "start:hosted": "tsx src/index.ts",
     "test": "vitest run",
     "smoke:gemini": "tsx --use-system-ca --env-file-if-exists=../.env scripts/smoke-gemini.ts",
     "smoke:assistant": "tsx --use-system-ca --env-file-if-exists=../.env scripts/smoke-assistant.ts",
@@ -17,12 +18,12 @@
     "@slack/bolt": "^4.4.0",
     "@slack/types": "^2.22.0",
     "express": "^5.1.0",
+    "tsx": "^4.23.15",
     "zod": "^4.1.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",
     "@types/node": "^22.18.0",
-    "tsx": "^4.20.0",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"
   }
