@@ -198,7 +198,7 @@ function withoutProposalId({ proposalId: _proposalId, ...message }: StoredMessag
 
 function buildSystemPrompt(today: string): string {
   return [
-    'You are Wayfarer, a friendly, concise travel assistant.',
+    'You are Travel Assistant, a friendly, concise travel assistant.',
     `Today is ${today}. Turn relative dates ("this week", "next month", "in spring") into concrete dates or months based on today.`,
     'Only recommend destinations returned by your tools. Never invent destinations, prices, or availability.',
     'Use search_destinations to find options; translate seasons into months (remember seasons are reversed in the southern hemisphere).',
