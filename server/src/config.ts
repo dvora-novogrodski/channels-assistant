@@ -5,9 +5,16 @@ const optionalString = z
   .optional()
   .transform((value) => value?.trim() || undefined);
 
+const ROTATING_TOKEN_PREFIX = 'xoxe.';
+
+// Slack issues rotating tokens with an extra "xoxe." prefix, e.g. "xoxe.xapp-1-...".
 function optionalToken(prefix: string) {
-  return optionalString.refine((value) => value === undefined || (value.startsWith(prefix) && value.length > prefix.length), {
-    message: `must start with ${prefix}`,
+  const hasPrefix = (value: string) => {
+    const unwrapped = value.startsWith(ROTATING_TOKEN_PREFIX) ? value.slice(ROTATING_TOKEN_PREFIX.length) : value;
+    return unwrapped.startsWith(prefix) && unwrapped.length > prefix.length;
+  };
+  return optionalString.refine((value) => value === undefined || hasPrefix(value), {
+    message: `must start with ${prefix} (or ${ROTATING_TOKEN_PREFIX}${prefix})`,
   });
 }
 

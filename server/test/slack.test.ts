@@ -237,5 +237,12 @@ describe('Slack config', () => {
     );
     expect(() => loadConfig({ GEMINI_API_KEY: 'k', SLACK_BOT_TOKEN: 'xoxb-' })).toThrow(/must start with xoxb-/);
     expect(loadConfig({ GEMINI_API_KEY: 'k', SLACK_BOT_TOKEN: '' }).SLACK_BOT_TOKEN).toBeUndefined();
+    expect(() => loadConfig({ GEMINI_API_KEY: 'k', SLACK_APP_TOKEN: 'xoxe-1-refresh' })).toThrow(/must start with xapp-/);
+  });
+
+  it('accepts rotating xoxe.-prefixed tokens', () => {
+    const config = loadConfig({ GEMINI_API_KEY: 'k', SLACK_BOT_TOKEN: 'xoxe.xoxb-1-abc', SLACK_APP_TOKEN: 'xoxe.xapp-1-abc' });
+
+    expect(config).toMatchObject({ SLACK_BOT_TOKEN: 'xoxe.xoxb-1-abc', SLACK_APP_TOKEN: 'xoxe.xapp-1-abc' });
   });
 });
