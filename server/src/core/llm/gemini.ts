@@ -41,7 +41,8 @@ export interface GeminiSettings {
 export function createGeminiLlm({ apiKey, model, fallbackModel }: GeminiSettings): Llm {
   const client = new GoogleGenAI({ apiKey });
   const primary = new GeminiLlm(client, model);
-  return fallbackModel ? new FallbackLlm(primary, new GeminiLlm(client, fallbackModel)) : primary;
+  const attempts = fallbackModel ? [primary, new GeminiLlm(client, fallbackModel), primary] : [primary, primary];
+  return new FallbackLlm(attempts);
 }
 
 export class GeminiLlm implements Llm {

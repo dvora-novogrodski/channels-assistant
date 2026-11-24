@@ -125,6 +125,5 @@ function describeProposal(proposal: ProposalView): string {
 }
 
 function describeError(reply: ChatMessage): string {
-  const retryHint = reply.error?.retryable ? ' Send your message again to retry.' : '';
-  return `:warning: ${reply.text}${retryHint}`;
+  return `:warning: ${reply.text}`;
 }

@@ -125,12 +125,14 @@ describe('Slack handlers', () => {
     expect(llm.requests).toEqual([]);
   });
 
-  it('shows an LLM failure as a warning with a retry hint', async () => {
+  it('shows an LLM failure as a warning that says how to proceed', async () => {
     llm.then(new LlmError('unavailable', '503'));
 
     await handlers.handleMessage(dm('Hi'), chat);
 
-    expect(chat.sent.at(-1)?.text).toMatch(/^:warning: I couldn't reach the AI service.*Send your message again to retry\.$/);
+    expect(chat.sent.at(-1)?.text).toBe(
+      ":warning: I couldn't reach the AI service, so your message wasn't saved. Please try again.",
+    );
   });
 
   it('confirms a proposal from the button, updates the card and posts the outcome once', async () => {

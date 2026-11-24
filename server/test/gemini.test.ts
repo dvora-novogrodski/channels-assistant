@@ -112,23 +112,58 @@ describe('FallbackLlm', () => {
   const okReply: LlmReply = { text: 'from fallback', toolCalls: [] };
   const request = { system: '', messages: [], tools: [] };
 
+  const succeeding: Llm = { generate: () => Promise.resolve(okReply) };
+  const noWait = () => Promise.resolve();
+
   function failingLlm(error: Error): Llm {
     return { generate: () => Promise.reject(error) };
   }
 
+  function sequenceLlm(...outcomes: Array<LlmReply | Error>): Llm & { calls: number } {
+    const llm = {
+      calls: 0,
+      generate: () => {
+        const outcome = outcomes[llm.calls++];
+        return outcome instanceof Error ? Promise.reject(outcome) : Promise.resolve(outcome ?? okReply);
+      },
+    };
+    return llm;
+  }
+
   it.each(['rate_limit', 'unavailable'] as const)('uses the fallback model when the primary fails with %s', async (kind) => {
-    const llm = new FallbackLlm(failingLlm(new LlmError(kind, 'primary failed')), {
-      generate: () => Promise.resolve(okReply),
-    });
+    const llm = new FallbackLlm([failingLlm(new LlmError(kind, 'primary failed')), succeeding], noWait);
 
     await expect(llm.generate(request)).resolves.toBe(okReply);
   });
 
   it.each(['blocked', 'bad_request'] as const)('does not use the fallback for %s', async (kind) => {
-    const llm = new FallbackLlm(failingLlm(new LlmError(kind, 'primary failed')), {
-      generate: () => Promise.resolve(okReply),
-    });
+    const llm = new FallbackLlm([failingLlm(new LlmError(kind, 'primary failed')), succeeding], noWait);
 
     await expect(llm.generate(request)).rejects.toMatchObject({ kind });
+  });
+
+  it('waits and retries the primary when both models are overloaded', async () => {
+    const primary = sequenceLlm(new LlmError('unavailable', '503'), okReply);
+    const waits: number[] = [];
+    const llm = new FallbackLlm(
+      [primary, failingLlm(new LlmError('unavailable', '504')), primary],
+      async (milliseconds) => {
+        waits.push(milliseconds);
+      },
+      1500,
+    );
+
+    await expect(llm.generate(request)).resolves.toBe(okReply);
+    expect(primary.calls).toBe(2);
+    expect(waits).toEqual([1500]);
+  });
+
+  it('reports the last error when every attempt fails', async () => {
+    const llm = new FallbackLlm(
+      [failingLlm(new LlmError('unavailable', 'first')), failingLlm(new LlmError('rate_limit', 'last'))],
+      noWait,
+    );
+
+    await expect(llm.generate(request)).rejects.toMatchObject({ kind: 'rate_limit', message: 'last' });
   });
 });

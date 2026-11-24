@@ -1,22 +1,36 @@
 import { LlmError, type Llm, type LlmErrorKind, type LlmReply, type LlmRequest } from './types.js';
 
-// Free-tier quota and "high demand" 503s are per model, so another model often succeeds.
+export const RETRY_DELAY_MS = 1500;
+
+// Free-tier quota and "high demand" 503/504s are per model and short-lived, so another attempt often succeeds.
 const RETRYABLE_KINDS = new Set<LlmErrorKind>(['rate_limit', 'unavailable']);
+
+type Sleep = (milliseconds: number) => Promise<void>;
+
+const defaultSleep: Sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+function isRetryable(error: unknown): boolean {
+  return error instanceof LlmError && RETRYABLE_KINDS.has(error.kind);
+}
 
 export class FallbackLlm implements Llm {
   constructor(
-    private readonly primary: Llm,
-    private readonly fallback: Llm,
+    private readonly attempts: Llm[],
+    private readonly sleep: Sleep = defaultSleep,
+    private readonly retryDelayMs = RETRY_DELAY_MS,
   ) {}
 
   async generate(request: LlmRequest): Promise<LlmReply> {
-    try {
-      return await this.primary.generate(request);
-    } catch (error) {
-      if (error instanceof LlmError && RETRYABLE_KINDS.has(error.kind)) {
-        return this.fallback.generate(request);
+    let lastError: unknown = new LlmError('unavailable', 'No LLM configured');
+    for (const [index, llm] of this.attempts.entries()) {
+      if (index >= 2) await this.sleep(this.retryDelayMs);
+      try {
+        return await llm.generate(request);
+      } catch (error) {
+        if (!isRetryable(error)) throw error;
+        lastError = error;
       }
-      throw error;
     }
+    throw lastError;
   }
 }
