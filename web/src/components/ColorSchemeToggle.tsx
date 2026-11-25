@@ -10,8 +10,8 @@ export function ColorSchemeToggle() {
     <Tooltip label={`Switch to ${nextScheme} mode`}>
       <ActionIcon
         variant="default"
-        size="lg"
-        radius="md"
+        size={36}
+        radius="xl"
         aria-label={`Switch to ${nextScheme} mode`}
         onClick={() => setColorScheme(nextScheme)}
       >

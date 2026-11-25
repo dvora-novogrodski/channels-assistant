@@ -1,4 +1,4 @@
-import { AppShell, Burger, Group, Text } from '@mantine/core';
+import { AppShell, Burger, Group } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconPlaneTilt } from '@tabler/icons-react';
 import { ChatView } from './components/ChatView';
@@ -23,27 +23,28 @@ export function App() {
 
   return (
     <AppShell
-      header={{ height: 60 }}
-      navbar={{ width: 272, breakpoint: 'sm', collapsed: { mobile: !isNavbarOpen } }}
+      header={{ height: 68 }}
+      navbar={{ width: 280, breakpoint: 'sm', collapsed: { mobile: !isNavbarOpen } }}
       padding={0}
     >
       <AppShell.Header className={classes.header}>
-        <Group h="100%" px="md" justify="space-between" wrap="nowrap">
+        <Group h="100%" px="lg" justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap">
             <Burger opened={isNavbarOpen} onClick={toggleNavbar} hiddenFrom="sm" size="sm" aria-label="Toggle chats" />
             <div className={classes.brandMark}>
-              <IconPlaneTilt size={17} stroke={1.8} />
+              <IconPlaneTilt size={18} stroke={1.8} />
             </div>
-            <Text className={classes.wordmark}>Travel Assistant</Text>
-            <Text fz="xs" c="dimmed" visibleFrom="sm">
-              Destinations, flights and stays
-            </Text>
+            <div>
+              <div className={classes.wordmark}>Travel Assistant</div>
+              <div className={classes.tagline}>Plan · Book · Go</div>
+            </div>
           </Group>
+
           <ColorSchemeToggle />
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar p="sm" className={classes.navbar}>
+      <AppShell.Navbar p="md" className={classes.navbar}>
         <ConversationList
           bookings={chat.bookings}
           conversations={chat.conversations}
