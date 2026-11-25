@@ -1,6 +1,6 @@
 # Travel Assistant: one AI assistant on the web and in Slack
 
-A travel assistant that suggests destinations from a local catalog, finds demo flights and stays, and prepares a **trip package** (flight + stay) that the user confirms and "pays" for with a demo card on file. The same backend serves a React web app and a Slack bot.
+A travel assistant that helps you choose a destination, finds flights and stays, and books a **trip package** in one conversation: you confirm, pay with a saved card, and receive e-tickets and a hotel voucher. The same backend serves a React web app and a Slack bot.
 
 ## Try it
 
@@ -10,25 +10,41 @@ A travel assistant that suggests destinations from a local catalog, finds demo f
 | **Slack** | Join the workspace with [this invite link](https://join.slack.com/t/the-travel-agent/shared_invite/zt-4hwisjpmt-oVclopSUzLsq5g5LyvcwLQ), then open **Apps → Travel Assistant** and send a direct message. |
 | **Demo video** | _link to be added_ |
 
-Things to try:
+Things to try (web or Slack):
 
-1. `I live in Tel Aviv and travel with my partner. Somewhere romantic with beaches in May?` (it remembers your airport and group size)
-2. Follow up: `What should I pack for the first one?` (general travel knowledge)
-3. `Book it for 5 nights from May 10 next year with the nicer hotel and the cheapest flight`, then press **Confirm & pay** (or tap the `Confirm trip` chip, or reply `confirm`)
-4. `What have I booked?`
-5. `simulate failure` shows the error path (enabled on the deployed instance)
+1. `I live in Tel Aviv and travel with my partner. Somewhere romantic with beaches in May?` (destination cards; it remembers your airport and group size)
+2. Follow up: `What should I pack for the first one?` (general travel knowledge, same conversation)
+3. `Book it for 5 nights from May 10 next year with the nicer hotel and the cheapest flight` → choose a card under **Pay with** → **Confirm & pay**. Watch the booking steps, then the e-tickets, hotel voucher and **Add to calendar**.
+4. `What have I booked?` (also listed under **My trips** in the sidebar)
+5. `simulate failure` shows the failure path with a **Try again** button (enabled on the deployed instance).
+
+In Slack the DM is one continuous chat; press **New trip** (or type `new trip`) to start a fresh conversation.
 
 The service runs on Render's free tier. If it has been idle, the first request can take about a minute.
 
+## How the requirements are met
+
+| Requirement | Where |
+|---|---|
+| Real messaging integration with a defined conversation model | Slack over Socket Mode; one flat DM chat per user with an explicit **New trip** action ([why](#design-decisions)). `server/src/channels/slack.*` |
+| React + TypeScript web UI with history and loading / success / error states | Sidebar history, "Planning your trip…" indicator, booking progress, booked state with tickets, error bubbles with **Try again**. `web/src` |
+| Shared backend, channel code separated from assistant logic | `server/src/core` knows nothing about Slack or HTTP; channels are thin adapters. |
+| Follow-ups and isolated users | History per conversation, bookings per user, ownership checked on every read (`store.ts`). In-memory storage, limits documented below. |
+| LLM with tools | Gemini with six tools: search destinations, destination details, search flights, propose trip, list bookings, save preferences (`tools.ts`). |
+| Graceful LLM / tool / delivery failures | LLM errors become chat messages with a retry; tool errors go back to the model; a Slack message Slack rejects is replaced by a clear notice. |
+| Focused tests | 127 Vitest tests, including isolation, follow-up context, failures and duplicate events (see [Tests](#tests)). |
+| Nice-to-haves | **Clear action confirmation** (proposal → confirm/cancel → booked, proposed vs completed clearly different) and **channel-native interactions** (cards, buttons, quick replies, text fallback "confirm"). |
+
 ## What it does
 
-- **Search and inspect** 32 curated destinations by month, region, budget, travel style and trip length, including "cheapest first". Each has an airport and two fictional stays.
-- **Demo flights + real prices.** `search_flights` returns simulated round-trip offers (deterministic per route and date), always with a prefilled **Google Flights link** to compare real prices.
-- **Trip packages.** `propose_trip` combines a stay and an optional flight. All prices are computed in code (nightly rate × nights × rooms, fare × travelers).
-- **Propose, then confirm and pay.** Nothing is booked until the user confirms with the card button, a quick-reply chip, or by typing `confirm`. Payment uses a **demo card on file** (Visa •••• 4242). No card details are ever entered, and the model never sees payment data. Cards show *ready to book*, *booked*, *cancelled* or *replaced* on both channels.
-- **More freedom, still grounded.** The assistant answers general travel questions (itineraries, packing, food, culture) from its own knowledge. Anything bookable or priced comes only from tools.
+- **Search and compare** curated destinations by month, region, budget, travel style and trip length, including cheapest first. Results appear as destination cards with **Plan this trip**.
+- **Flights and stays.** Round-trip flight offers per route and date, with a prefilled Google Flights link to compare prices; two hand-picked stays per destination.
+- **Trip packages.** Flight + stay with a cost breakdown. All prices are computed in code (nightly rate × nights × rooms, fare × travelers), never by the model.
+- **Propose, then confirm and pay.** Nothing is booked until the user confirms with the card button, a quick-reply chip, or by typing `confirm`. Payment uses a saved card chosen under **Pay with**.
+- **Booking that feels complete.** Booking steps (seats, hotel, payment, tickets), then a booking reference, airline booking code, e-ticket per traveler, seats, outbound and return legs, hotel voucher with check-in/out, and a downloadable calendar file.
+- **Freedom with grounding.** General travel questions (packing, food, itineraries) are answered from the model's knowledge; anything bookable or priced comes only from tools.
 - **Remembers preferences** (home airport, group size, budget style, interests) across chats.
-- **Quick replies.** Each answer suggests 2–3 follow-ups, shown as chips on the web and buttons in Slack.
+- **Quick replies** after each answer, as chips on the web and buttons in Slack.
 
 ## Architecture
 
@@ -42,51 +58,44 @@ flowchart LR
   B --> A
   A --> L[Llm interface<br/>Gemini + fallback/retry]
   A --> T[Tools<br/>search · details · flights · propose trip · bookings · preferences]
+  A --> P[Proposals + tickets<br/>confirm / cancel in code]
   T --> D[(destinations.json)]
   A --> M[(In-memory store<br/>users · conversations · proposals)]
 ```
 
 ```
-shared/            Types shared by server and web (API contract, destination schema)
+shared/            Types shared by server and web (API contract, destination schema, saved cards)
 server/
-  src/core/        Channel-agnostic logic: assistant loop, tools, proposals, store, LLM
+  src/core/        Channel-agnostic logic: assistant loop, tools, proposals, tickets, store, LLM
   src/channels/    Thin adapters: web.router.ts (Express), slack.* (Bolt, Block Kit)
   src/http/        Central Express error middleware
-  data/            Destination catalog (sample data)
+  data/            Destination catalog
   test/            Vitest suites with a scripted fake LLM (no network)
 web/               React + TypeScript + Mantine chat UI
-docs/              Slack setup and deployment guides
+docs/              Decision log, Slack setup, deployment
 ```
 
-`core/` never imports a channel. Adding a channel means adding one adapter that turns platform events into `assistant.handleMessage(userId, conversationId, text)` and `assistant.resolveProposal(...)` calls.
+`core/` never imports a channel. Adding a channel means one adapter that turns platform events into `assistant.handleMessage(userId, conversationId, text)` and `assistant.resolveProposal(...)` calls.
+
+**Start reading the code with [docs/decisions.md](docs/decisions.md)**: it lists the files in reading order and the reasoning behind every major decision.
 
 ## Design decisions
 
-**Slack, as one flat chat with "New trip".** Slack is free (no SMS verification) and familiar to reviewers. Socket Mode means no public webhook or request signing, and it supports buttons. The DM works like chatting with a person: every message continues the current trip conversation, and the bot answers in the main chat instead of hiding replies in threads. A **New trip** button on every reply (or typing `new trip`) starts a fresh conversation. I first used one thread per conversation, but replies hidden in threads were clunky to follow. The trade-off is that older trips are not separated visually, which the explicit "New trip" marker makes up for.
+The full decision log is in [docs/decisions.md](docs/decisions.md). The most important ones:
 
-**Users and conversations are separate.** Bookings belong to the user (`web:<uuid>` or `slack:<user id>`), so they are visible from any chat. LLM history belongs to the conversation. Every read checks ownership, and an unknown id and someone else's id return the same 404, so ids cannot be probed.
+**Slack as one flat chat with "New trip".** Slack is free (no SMS verification), familiar to reviewers, and Socket Mode needs no public webhook. The DM works like messaging a person: every message continues the current trip, and replies appear in the main chat. **New trip** (button or text) starts a fresh conversation. I first used one thread per conversation, but replies hidden in threads were clunky and a follow-up typed outside the thread silently started a new chat.
 
-**The tool loop saves a turn only when it fully succeeds.** `TripAssistant` runs a capped (5-step) tool loop on a *copy* of the history. Tool side effects (a new proposal) are collected as *effects* and applied only after every LLM call succeeds. A failure mid-turn leaves no half-written history, no orphan proposal and no unsaved user message, so a retry is clean.
+**Users and conversations are separate.** Bookings and preferences belong to the user (`web:<uuid>` or `slack:<user id>`); LLM history belongs to the conversation. Every read checks ownership, and "missing" and "not yours" return the same 404.
 
-**Proposals are resolved in code, not by the LLM.** Confirm and cancel (button or typed `confirm` / `cancel`) skip the model. They are idempotent (a double click or Slack retry books once), a cancelled or replaced proposal cannot be booked, and the outcome is added to the LLM history so follow-ups know about it. **Prices are computed in code** (nightly rate × nights × rooms, fare × travelers), never written by the model.
+**A turn is saved only when it fully succeeds.** The tool loop (capped at 6 steps) runs on a copy of the history; tool side effects (proposals, preferences) are collected and applied only after every LLM call succeeds, so a failure leaves nothing half-written and a retry is clean.
 
-**Demo payment instead of a card form.** Confirming "pays" with a demo card on file. A card-entry form in a public demo invites real card numbers, and an LLM should never handle payment data, so the wallet gives the realistic flow without collecting anything.
+**Confirmation happens in code, not in the LLM.** Confirm and cancel never call the model, are idempotent (a double click or Slack retry books once), and a cancelled or replaced proposal can't be booked.
 
-**Demo flights are deterministic.** Offers are derived from a hash of route and date, so `propose_trip` can re-create the offer the user picked without storing search results, and every offer links to real prices on Google Flights.
+**Saved cards instead of a card form.** A public app with a card form invites real card numbers, and an LLM should never handle payment data. Choosing from saved cards is how booking apps work after the first purchase.
 
-**Freedom with grounding.** The prompt lets the model use general travel knowledge but requires tools for anything bookable or priced. Preferences and proposals are tool *effects*, applied only when the whole turn succeeds.
+**Failures are chat messages.** An LLM outage returns HTTP 200 with `reply.error = { kind, retryable }`; the UI explains what happened and offers **Try again**. HTTP 4xx/5xx are reserved for API misuse.
 
-**Quick replies** are requested as a final `Quick replies: a | b | c` line, parsed out of the text on the server and rendered as chips (web) or buttons (Slack). A reply without the line simply has no chips.
-
-**zod at every boundary.** One schema per tool gives Gemini its JSON Schema and validates the model's arguments. Invalid arguments are returned to the model as tool errors, so it can correct itself. HTTP bodies, env config (including Slack token prefixes) and the dataset are validated the same way.
-
-**A small LLM interface instead of a framework.** `Llm.generate()` uses provider-neutral messages, and only `gemini.ts` imports the SDK. Gemini's raw response parts (thought signatures) are kept and sent back unchanged. Tests use a scripted fake LLM.
-
-**Failures are chat messages, not HTTP errors.** An LLM outage returns HTTP 200 with `reply.error = { kind, retryable }`, and the UI shows a specific message and a **Retry** button. HTTP 400/404/413/500 are reserved for misuse of the API and handled in one Express error middleware.
-
-**Free-tier reliability.** Gemini's free tier often returns 503/504. Each call tries the primary model, then a second lite model (load is per model), then the primary again after 1.5 s. Overlapping messages in one conversation are rejected with a "still working" reply instead of racing.
-
-**Slack details.** A "_Checking destinations…_" placeholder is replaced by the answer. Markdown is converted to Slack mrkdwn. Proposal cards are Block Kit with a plain-text fallback, and they are edited in place when confirmed, cancelled or replaced. Duplicate events are ignored by `channel:ts`. Slack delivery failures are logged without losing the turn.
+**Free-tier reliability.** Each LLM call tries the primary Gemini model, a second model, then the primary again after 1.5 s. Overlapping messages in one conversation get a "still working" reply instead of racing.
 
 ## Run locally
 
@@ -103,45 +112,46 @@ Production-style: `npm run build`, then `npm start`. This serves the built web a
 
 | Script | Purpose |
 |---|---|
-| `npm test` | Vitest suites (115 tests, no network) |
+| `npm test` | Vitest suites (127 tests, no network) |
 | `npm run typecheck` | Strict TypeScript across all workspaces |
 | `npm run smoke:gemini -w server` | One real Gemini tool-call round trip |
 | `npm run smoke:assistant -w server` | A real multi-turn conversation through the assistant |
 
-- **Code walkthrough and decision log:** see [docs/decisions.md](docs/decisions.md) (read-this-first order and the reasoning behind every major choice).
-- **Slack:** see [docs/slack-setup.md](docs/slack-setup.md) (app manifest, tokens, conversation model).
-- **Deployment:** see [docs/deploy.md](docs/deploy.md) (Render Blueprint, keep-awake ping).
+- **Slack:** [docs/slack-setup.md](docs/slack-setup.md) (app manifest, tokens, conversation model).
+- **Deployment:** [docs/deploy.md](docs/deploy.md) (Render Blueprint, keep-awake ping).
 - **Behind HTTPS-inspecting filters** (for example Netspark): local scripts pass `--use-system-ca` so Node trusts the Windows certificate store.
 
 ## Tests
 
 | Suite | Covers |
 |---|---|
-| `assistant.test.ts` | Follow-up context, LLM failure saves nothing and recovers, rate limits, tool failure fed back, no orphan proposal on failure, supersede, busy rejection, step cap, history window |
-| `proposals.test.ts` | Confirm only after confirmation, idempotent double confirm, cancel, superseded cannot be booked, ownership, typed `confirm` without an LLM call |
+| `assistant.test.ts` | Follow-up context, LLM failure saves nothing and recovers, rate limits, tool failure fed back, no orphan proposal on failure, supersede, busy rejection, step cap, history window, preferences, quick replies, destination cards |
+| `proposals.test.ts` | Booking only after confirmation, idempotent double confirm, cancel, replaced proposals can't be booked, ownership, typed `confirm`, chosen payment card |
+| `tickets.test.ts` | E-tickets and seats per traveler, overnight arrivals, return flight after check-out, hotel voucher |
 | `store.test.ts` | Conversation isolation between users, bookings per user, titles, duplicate-event set |
-| `slack.test.ts` | Thread-per-conversation, duplicate events processed once, ignored message types, card updates, one outcome per double click, delivery failures, mrkdwn, token validation |
-| `webApi.test.ts` | Real HTTP: per-user lists, 400/404/malformed JSON, LLM failure as a chat message, SPA fallback |
-| `gemini.test.ts`, `tools.test.ts`, `destinations.test.ts` | Message mapping, error mapping, fallback/retry, tool validation, search filters and sorting |
+| `slack.test.ts` | Flat chat and New trip, duplicate events and clicks processed once, card updates and booking progress, delivery-failure notice, long-reply splitting, mrkdwn escaping, token validation |
+| `webApi.test.ts` | Real HTTP: per-user lists, bookings, 400/404/malformed JSON, LLM failure as a chat message, SPA fallback |
+| `gemini.test.ts`, `tools.test.ts`, `destinations.test.ts` | Message and error mapping, fallback/retry, tool validation, flights, packages, search filters and sorting |
 
 ## Known limitations
 
-- **In-memory storage.** Conversations, proposals and bookings are lost on restart, there is one process only (no horizontal scaling), and memory grows with use. The LLM sees the last 20 messages, and the duplicate-event set keeps the last 1,000 keys.
-- **No authentication.** A web user is a random id in `localStorage`, so another browser means a new user. Web and Slack identities are not linked.
-- **Sample data and simulated bookings.** 32 hand-curated destinations with fictional stays and rough daily costs. Flights are simulated (with links to real prices). Payment is a demo card; nothing is charged or reserved.
-- **Free tiers.** Gemini can be slow or briefly unavailable, and the app shows a retryable error after retries. Render's free instance may restart (clearing memory) and needs an uptime ping to stay awake.
-- **Slack.** Proposal-card references are in memory, so after a restart old buttons answer "no longer available". The workspace invite link expires after 30 days.
-- **Overlapping messages** in one conversation are rejected rather than queued or merged.
+- **Sample data and simulated bookings.** The destination catalog, stays, flights, tickets and payments are generated for this assignment; nothing is reserved or charged. The only real external link is the Google Flights price comparison.
+- **In-memory storage.** Conversations, proposals and bookings are lost on restart; one process only; the LLM sees the last 24 messages; the duplicate-event set keeps the last 1,000 keys.
+- **No authentication.** A web user is a random id in `localStorage`, so another browser is a new user. Web and Slack identities are not linked.
+- **Time zones.** Flight arrival times and calendar events use the departure time zone.
+- **Free tiers.** Gemini can be slow or briefly unavailable (the app retries, then shows a retryable error). Render's free instance may restart and needs an uptime ping to stay awake.
+- **Slack.** The current trip per DM is kept in memory, so a restart starts a new conversation and old buttons answer "no longer available". The invite link expires after 30 days.
+- **Overlapping messages** in one conversation are rejected rather than queued.
 
 ## What I would improve with more time
 
-1. **Persistence:** SQLite or Postgres behind the existing `ConversationStore` interface, which would remove most of the limitations above.
-2. **Conversation handoff:** link a web user and a Slack user with a one-time code, so a chat can continue across channels.
-3. **Real inventory:** swap the deterministic demo flights and catalog for real flight and hotel APIs behind the same tool interfaces.
-4. **Streaming and progress:** stream tokens to the web UI and show tool progress ("searching…"), with a cancel button.
-5. **Interruptions:** let a new message cancel or amend the running turn instead of getting "still working".
-6. **Reliability and quality:** a paid LLM tier or provider failover, an eval set for tool choice and answer quality, per-user rate limits, and structured logs.
-7. **End-to-end tests** with Playwright for the web UI.
+1. **Persistence:** SQLite or Postgres behind the existing `ConversationStore` interface, which removes most of the limitations above.
+2. **Conversation handoff:** link a web user and a Slack user with a one-time code, so a trip can continue across channels.
+3. **Real inventory:** real flight and hotel APIs behind the same tool interfaces, with time-zone-aware schedules.
+4. **Streaming:** stream answers and tool progress to the web UI, with a cancel button.
+5. **Interruptions:** let a new message cancel or amend the running turn instead of "still working".
+6. **Quality and operations:** an eval set for tool choice and answers, a paid LLM tier or provider failover, per-user rate limits, structured logs.
+7. **End-to-end tests** with Playwright.
 
 ## Tech
 

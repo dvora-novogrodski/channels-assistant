@@ -71,6 +71,10 @@ Each entry: **decision** — why — alternatives considered — where.
 
 - **Render free tier, one service** (API + web + Slack), Node 22 pinned, uptime ping to stay awake. *Trade-off:* in-memory data resets on restart. *Where:* `render.yaml`, `docs/deploy.md`.
 
-## Known open issues (from the deep review)
+## Review status
 
-See the review findings; the main ones are: "Paid with" shown on cancelled/replaced cards, Slack rejecting replies over 3000 characters, return flights that can depart before check-out, Slack card updates dropping the action buttons, and the calendar download being revoked too early in some browsers.
+A deep review found 10 issues; 8 are fixed (cancelled cards saying "Paid with", long Slack replies, return flights before check-out, Slack card updates, the calendar download, payment-id validation, React keys, empty replies). The two time-zone issues are documented as known limitations in the README.
+
+### Booking experience
+
+- **Booking progress is presentational.** The server confirms instantly; the web card and the Slack card show four steps (seats, hotel, payment, tickets) for about 3.6 seconds so the booking reads as a real transaction. The minimum duration lives in one place per channel (`useChat.resolveProposal`, `slack.handlers.showBookingProgress`) and is skipped in tests.
