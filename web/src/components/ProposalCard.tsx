@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
-import { Alert, Anchor, Badge, Button, Group, Stack, Text } from '@mantine/core';
+import { Alert, Anchor, Badge, Button, Group, Select, Stack, Text } from '@mantine/core';
 import { IconBed, IconCreditCard, IconExternalLink, IconPlane } from '@tabler/icons-react';
-import type { ProposalStatus, ProposalView } from '@app/shared';
+import { SAVED_PAYMENT_METHODS, type ProposalStatus, type ProposalView } from '@app/shared';
 import type { ProposalDecision } from '../chatApi';
 import { formatTripDate, formatUsd } from '../formatTrip.util';
 import classes from './ProposalCard.module.css';
@@ -13,14 +13,20 @@ const STATUS_BADGES: Record<ProposalStatus, { label: string; color: string }> = 
   superseded: { label: 'Replaced', color: 'gray' },
 };
 
+const PAYMENT_OPTIONS = SAVED_PAYMENT_METHODS.map(({ id, label, expires }) => ({
+  value: id,
+  label: `${label} · expires ${expires}`,
+}));
+
 interface ProposalCardProps {
   proposal: ProposalView;
-  onDecision: (decision: ProposalDecision) => Promise<void>;
+  onDecision: (decision: ProposalDecision, paymentMethodId?: string) => Promise<void>;
 }
 
 export function ProposalCard({ proposal, onDecision }: ProposalCardProps) {
   const [pendingDecision, setPendingDecision] = useState<ProposalDecision | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
+  const [paymentMethodId, setPaymentMethodId] = useState<string>(SAVED_PAYMENT_METHODS[0].id);
 
   const badge = STATUS_BADGES[proposal.status];
   const isActionable = proposal.status === 'proposed';
@@ -30,7 +36,7 @@ export function ProposalCard({ proposal, onDecision }: ProposalCardProps) {
     setPendingDecision(decision);
     setErrorText(null);
     try {
-      await onDecision(decision);
+      await onDecision(decision, decision === 'confirm' ? paymentMethodId : undefined);
     } catch (error) {
       setErrorText(error instanceof Error ? error.message : 'Something went wrong. Please try again.');
     } finally {
@@ -102,14 +108,28 @@ export function ProposalCard({ proposal, onDecision }: ProposalCardProps) {
           Plus about {formatUsd(proposal.dailyBudgetUsd)} per person per day for food and activities (not charged).
         </Text>
 
-        <Group gap={6} mt="md" wrap="nowrap">
-          <IconCreditCard size={16} stroke={1.6} />
-          <Text fz="sm">{proposal.paymentMethod}</Text>
-        </Group>
+        {isActionable ? (
+          <Select
+            mt="md"
+            label="Pay with"
+            aria-label="Pay with"
+            data={PAYMENT_OPTIONS}
+            value={paymentMethodId}
+            onChange={(value) => value && setPaymentMethodId(value)}
+            allowDeselect={false}
+            leftSection={<IconCreditCard size={16} stroke={1.6} />}
+            comboboxProps={{ withinPortal: true }}
+          />
+        ) : (
+          <Group gap={6} mt="md" wrap="nowrap">
+            <IconCreditCard size={16} stroke={1.6} />
+            <Text fz="sm">Paid with {proposal.paymentMethod}</Text>
+          </Group>
+        )}
 
         {proposal.bookingRef && (
           <Text fz="sm" mt="xs" c="teal">
-            Booking reference <strong>{proposal.bookingRef}</strong> · demo booking, no real payment
+            Booking reference <strong>{proposal.bookingRef}</strong>
           </Text>
         )}
 
@@ -171,9 +191,9 @@ function FlightLine({ proposal }: { proposal: ProposalView }) {
       detail={
         <>
           {stops} · {flight.durationHours}h · departs {flight.departTime} · {formatUsd(flight.priceUsdPerTraveler)} ×{' '}
-          {proposal.travelers} · demo flight{' '}
+          {proposal.travelers} ·{' '}
           <Anchor href={flight.compareUrl} target="_blank" rel="noopener noreferrer" fz="xs" inherit>
-            compare real prices <IconExternalLink size={11} style={{ verticalAlign: 'middle' }} />
+            compare on Google Flights <IconExternalLink size={11} style={{ verticalAlign: 'middle' }} />
           </Anchor>
         </>
       }

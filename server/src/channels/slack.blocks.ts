@@ -84,7 +84,7 @@ export function buildProposalBlocks(proposal: ProposalView, actionValue: Proposa
   if (proposal.flight) {
     blocks.push({
       type: 'context',
-      elements: [{ type: 'mrkdwn', text: `Demo flight data · <${proposal.flight.compareUrl}|Compare real prices on Google Flights>` }],
+      elements: [{ type: 'mrkdwn', text: `<${proposal.flight.compareUrl}|Compare prices on Google Flights>` }],
     });
   }
 
@@ -156,7 +156,7 @@ function describeFlightField(proposal: ProposalView) {
   return {
     type: 'mrkdwn' as const,
     text:
-      `*:airplane: Flight (demo)*\n${flight.airline} ${flight.flightNumber}\n` +
+      `*:airplane: Flight*\n${flight.airline} ${flight.flightNumber}\n` +
       `${flight.originAirport} → ${flight.destinationAirport} · ${stops} · ${flight.durationHours}h · ${flight.departTime}\n` +
       `${usd(flight.priceUsdPerTraveler)} × ${proposal.travelers} = ${usd(proposal.costs.flightsUsd)}`,
   };
@@ -176,7 +176,7 @@ function describeStayField(proposal: ProposalView) {
 function describeStatus(proposal: ProposalView): string {
   const statusLine = STATUS_LINES[proposal.status];
   if (proposal.status === 'confirmed' && proposal.bookingRef) {
-    return `${statusLine} · Reference *${proposal.bookingRef}* · demo booking, no real payment`;
+    return `${statusLine} · Reference *${proposal.bookingRef}*`;
   }
   if (proposal.status === 'proposed') return `${statusLine} · or reply "confirm" / "cancel"`;
   return statusLine;

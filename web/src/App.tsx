@@ -36,7 +36,7 @@ export function App() {
             </div>
             <Text className={classes.wordmark}>Travel Assistant</Text>
             <Text fz="xs" c="dimmed" visibleFrom="sm">
-              Destinations, demo flights and stays
+              Destinations, flights and stays
             </Text>
           </Group>
           <ColorSchemeToggle />
@@ -45,6 +45,7 @@ export function App() {
 
       <AppShell.Navbar p="sm" className={classes.navbar}>
         <ConversationList
+          bookings={chat.bookings}
           conversations={chat.conversations}
           status={chat.conversationsStatus}
           activeConversationId={chat.activeConversationId}

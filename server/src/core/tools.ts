@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { BUDGET_TIERS, REGIONS, TAGS, type Destination, type Stay } from '@app/shared';
+import { BUDGET_TIERS, REGIONS, SAVED_PAYMENT_METHODS, TAGS, type Destination, type Stay } from '@app/shared';
 import { SEARCH_SORT_ORDERS, findDestination, searchDestinations } from './destinations.js';
 import { searchFlights, type FlightOffer } from './flights.js';
 import type { ToolCall, ToolResult, ToolSpec } from './llm/types.js';
@@ -8,7 +8,7 @@ import type { Conversation, Proposal, User, UserPreferences } from './store.js';
 
 export const MAX_NIGHTS = 30;
 export const MAX_TRAVELERS = 10;
-export const DEMO_PAYMENT_METHOD = 'Visa •••• 4242 (demo card on file)';
+export const DEFAULT_PAYMENT_METHOD: string = SAVED_PAYMENT_METHODS[0].label;
 
 export interface ToolContext {
   user: User;
@@ -97,14 +97,14 @@ const getDestinationTool = defineTool({
 const searchFlightsTool = defineTool({
   name: 'search_flights',
   description:
-    'Find round-trip DEMO flights (simulated airlines and prices) from the user\'s airport to a destination. ' +
-    'Also returns compareUrl, a real Google Flights search for the same trip: always share it as a Markdown link.',
+    'Find round-trip flight offers from the user\'s airport to a destination. ' +
+    'Also returns compareUrl, a Google Flights search for the same trip: always share it as a Markdown link.',
   schema: tripSchema.omit({ travelers: true }).extend({ originAirport: airportCode }),
   run: ({ destinationId, startDate, nights, originAirport }, { today }) => {
     const destination = requireDestination(destinationId);
     requireFutureDate(startDate, today);
     const { offers, compareUrl } = searchDestinationFlights(destination, originAirport, startDate, nights);
-    return { output: { demo: true, offers, compareUrl } };
+    return { output: { offers, compareUrl } };
   },
 });
 
@@ -112,8 +112,8 @@ const proposeTripTool = defineTool({
   name: 'propose_trip',
   description:
     'Prepare a trip package for the user to confirm: a stay (stayId from get_destination; omit for the best-value ' +
-    'stay) plus, optionally, a demo flight (originAirport + flightOfferId from search_flights). This does NOT book ' +
-    'anything. The user confirms with the button or by replying "confirm", and pays with the demo card on file. ' +
+    'stay) plus, optionally, a flight (originAirport + flightOfferId from search_flights). This does NOT book ' +
+    'anything. The user confirms with the button or by replying "confirm", and pays with a saved card. ' +
     'Proposing again replaces the previous pending proposal.',
   schema: tripSchema.extend({
     stayId: z.string().optional(),
@@ -128,7 +128,7 @@ const proposeTripTool = defineTool({
     const proposal = buildProposal({ destination, stay, flight, startDate, nights, travelers });
 
     return {
-      output: { ...proposal, note: 'Not booked yet. The user confirms and pays with the demo card from the card.' },
+      output: { ...proposal, note: 'Not booked yet. The user confirms and pays with a saved card on the trip card.' },
       effect: { type: 'propose', proposal },
     };
   },
@@ -136,7 +136,7 @@ const proposeTripTool = defineTool({
 
 const listBookingsTool = defineTool({
   name: 'list_bookings',
-  description: "List the user's confirmed (simulated) trip bookings.",
+  description: "List the user's confirmed trip bookings.",
   schema: z.object({}),
   run: (_args, { user }) => ({ output: { bookings: user.bookings } }),
 });
@@ -290,7 +290,7 @@ function buildProposal(trip: {
     costs: { stayUsd, flightsUsd },
     estimatedTotalUsd: stayUsd + flightsUsd,
     dailyBudgetUsd: destination.dailyCostUsd,
-    paymentMethod: DEMO_PAYMENT_METHOD,
+    paymentMethod: DEFAULT_PAYMENT_METHOD,
     status: 'proposed',
   };
 }

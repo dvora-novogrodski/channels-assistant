@@ -1,5 +1,6 @@
 import type {
   ApiErrorBody,
+  BookingView,
   ChatMessage,
   ConversationSummary,
   CreateConversationRequest,
@@ -50,6 +51,10 @@ export const chatApi = {
     return requestJson<ConversationSummary[]>(`/api/conversations?userId=${encodeURIComponent(userId)}`);
   },
 
+  listBookings(userId: string) {
+    return requestJson<BookingView[]>(`/api/bookings?userId=${encodeURIComponent(userId)}`);
+  },
+
   createConversation(userId: string) {
     const body: CreateConversationRequest = { userId };
     return requestJson<ConversationSummary>('/api/conversations', { method: 'POST', body });
@@ -64,8 +69,14 @@ export const chatApi = {
     return requestJson<SendMessageResponse>(`${conversationPath(conversationId)}/messages`, { method: 'POST', body });
   },
 
-  resolveProposal(userId: string, conversationId: string, proposalId: string, decision: ProposalDecision) {
-    const body: ResolveProposalRequest = { userId, decision };
+  resolveProposal(
+    userId: string,
+    conversationId: string,
+    proposalId: string,
+    decision: ProposalDecision,
+    paymentMethodId?: string,
+  ) {
+    const body: ResolveProposalRequest = { userId, decision, paymentMethodId };
     return requestJson<ResolveProposalResponse>(
       `${conversationPath(conversationId)}/proposals/${encodeURIComponent(proposalId)}`,
       { method: 'POST', body },

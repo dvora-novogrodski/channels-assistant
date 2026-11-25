@@ -24,7 +24,7 @@ interface MessageBubbleProps {
   message: UiMessage;
   onRetry: (messageId: string) => void;
   onSend: (text: string) => void;
-  onResolveProposal: (proposalId: string, decision: ProposalDecision) => Promise<void>;
+  onResolveProposal: (proposalId: string, decision: ProposalDecision, paymentMethodId?: string) => Promise<void>;
 }
 
 export function AssistantAvatar() {
@@ -49,7 +49,10 @@ export function MessageBubble({ message, onRetry, onSend, onResolveProposal }: M
         </Typography>
         {message.destinations && <DestinationCards destinations={message.destinations} onPlan={onSend} />}
         {proposal && (
-          <ProposalCard proposal={proposal} onDecision={(decision) => onResolveProposal(proposal.id, decision)} />
+          <ProposalCard
+            proposal={proposal}
+            onDecision={(decision, paymentMethodId) => onResolveProposal(proposal.id, decision, paymentMethodId)}
+          />
         )}
       </Stack>
     </Group>

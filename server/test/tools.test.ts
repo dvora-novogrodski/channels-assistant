@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { searchFlights } from '../src/core/flights.js';
 import { InMemoryConversationStore } from '../src/core/store.js';
-import { DEMO_PAYMENT_METHOD, executeToolCall, toolSpecs, type ToolContext } from '../src/core/tools.js';
+import { DEFAULT_PAYMENT_METHOD, executeToolCall, toolSpecs, type ToolContext } from '../src/core/tools.js';
 import { LISBON_TRIP } from './fixtures.js';
 
 function createContext(): ToolContext {
@@ -64,13 +64,12 @@ describe('executeToolCall', () => {
     expect(call('book_flight', {}).result).toMatchObject({ isError: true, output: 'Unknown tool "book_flight".' });
   });
 
-  it('finds deterministic demo flights with a real compare link', () => {
+  it('finds deterministic flight offers with a Google Flights compare link', () => {
     const first = call('search_flights', { ...LISBON_TRIP, originAirport: 'tlv' }).result.output;
     const second = call('search_flights', { ...LISBON_TRIP, originAirport: 'TLV' }).result.output;
 
     expect(first).toEqual(second);
     expect(first).toMatchObject({
-      demo: true,
       offers: expect.arrayContaining([expect.objectContaining({ originAirport: 'TLV', destinationAirport: 'LIS' })]),
       compareUrl: expect.stringMatching(/^https:\/\/www\.google\.com\/travel\/flights\?q=Flights%20from%20TLV%20to%20LIS/),
     });
@@ -89,7 +88,7 @@ describe('executeToolCall', () => {
         stay: { name: 'Alfama Tile House', rooms: 1 },
         costs: { stayUsd: 85 * 5, flightsUsd: 0 },
         estimatedTotalUsd: 425,
-        paymentMethod: DEMO_PAYMENT_METHOD,
+        paymentMethod: DEFAULT_PAYMENT_METHOD,
         status: 'proposed',
       },
     });

@@ -70,6 +70,8 @@ export interface ChatMessage {
   error?: { kind: ErrorKind; retryable: boolean }; // present when the turn failed
 }
 
+export type BookingView = ProposalView & { bookingRef: string; confirmedAt: string };
+
 export interface ConversationSummary {
   id: string;
   title: string; // first user message, truncated
@@ -102,7 +104,16 @@ export interface SendMessageResponse {
 export interface ResolveProposalRequest {
   userId: string;
   decision: 'confirm' | 'cancel';
+  paymentMethodId?: string; // one of SAVED_PAYMENT_METHODS; defaults to the first
 }
+
+/** Cards "on file" for every user. Only labels exist: no card numbers are stored or collected anywhere. */
+export const SAVED_PAYMENT_METHODS = [
+  { id: 'visa-4242', label: 'Visa •••• 4242', expires: '08/28' },
+  { id: 'mastercard-5454', label: 'Mastercard •••• 5454', expires: '03/27' },
+] as const;
+
+export type SavedPaymentMethod = (typeof SAVED_PAYMENT_METHODS)[number];
 
 export interface ResolveProposalResponse {
   proposal: ProposalView;

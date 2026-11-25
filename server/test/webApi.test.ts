@@ -172,3 +172,29 @@ describe('web API', () => {
     expect(response.data).toContain('<title>Travel Assistant</title>');
   });
 });
+
+describe('bookings API', () => {
+  it('lists only the requesting user\'s confirmed bookings, newest first', async () => {
+    const llm = new ScriptedLlm(
+      toolReply({ name: 'propose_trip', args: { destinationId: 'lisbon-pt', startDate: '2027-05-12', nights: 5, travelers: 2 } }),
+      textReply('Ready.'),
+    );
+    const { request, createConversation } = await startServer(llm);
+    const conversationId = await createConversation();
+    const { data } = await request<SendMessageResponse>('POST', `/api/conversations/${conversationId}/messages`, {
+      userId: ALICE,
+      text: 'Book Lisbon',
+    });
+    await request('POST', `/api/conversations/${conversationId}/proposals/${data.reply.proposal?.id}`, {
+      userId: ALICE,
+      decision: 'confirm',
+      paymentMethodId: 'mastercard-5454',
+    });
+
+    const alice = await request<Array<{ destinationName: string; paymentMethod: string }>>('GET', `/api/bookings?userId=${ALICE}`);
+    const bob = await request('GET', `/api/bookings?userId=${BOB}`);
+
+    expect(alice.data).toMatchObject([{ destinationName: 'Lisbon', paymentMethod: 'Mastercard •••• 5454' }]);
+    expect(bob.data).toEqual([]);
+  });
+});

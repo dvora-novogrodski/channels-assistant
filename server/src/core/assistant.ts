@@ -55,7 +55,7 @@ export class TripAssistant {
     const decision = parseDecision(text);
     const pendingProposal = findPendingProposal(conversation);
     if (decision && pendingProposal) {
-      const reply = this.resolve(userId, conversation, pendingProposal, decision, text);
+      const reply = this.resolve(userId, conversation, pendingProposal, decision, { typedText: text });
       return { reply, updatedProposal: { ...pendingProposal } };
     }
 
@@ -74,13 +74,14 @@ export class TripAssistant {
     conversationId: string,
     proposalId: string,
     decision: ProposalDecision,
+    paymentMethodId?: string,
   ): ResolveProposalResponse {
     const conversation = this.store.getConversation(userId, conversationId);
     const proposal = conversation.proposals.find(({ id }) => id === proposalId);
     if (!proposal) throw new NotFoundError('Proposal not found');
     if (conversation.busy) return { proposal: { ...proposal }, reply: this.errorReply('busy') };
 
-    const reply = this.resolve(userId, conversation, proposal, decision);
+    const reply = this.resolve(userId, conversation, proposal, decision, { paymentMethodId });
     return { proposal: { ...proposal }, reply };
   }
 
@@ -89,9 +90,10 @@ export class TripAssistant {
     conversation: Conversation,
     proposal: Proposal,
     decision: ProposalDecision,
-    typedText?: string,
+    options: { typedText?: string; paymentMethodId?: string } = {},
   ): ChatMessage {
-    const outcome = applyDecision(this.store.getUser(userId), proposal, decision, this.now());
+    const { typedText, paymentMethodId } = options;
+    const outcome = applyDecision(this.store.getUser(userId), proposal, decision, this.now(), paymentMethodId);
     const reply = this.message('assistant', outcome.text);
     if (!outcome.changed) return withoutProposalId(reply);
 
@@ -255,7 +257,7 @@ function describePreferences(preferences: UserPreferences): string {
 
 function buildSystemPrompt(today: string, preferences: UserPreferences): string {
   return [
-    'You are Travel Assistant: a warm, knowledgeable travel planner who helps people choose a destination and books trip packages (demo flight + stay) for them.',
+    'You are Travel Assistant: a warm, knowledgeable travel planner who helps people choose a destination and books trip packages (flight + stay) for them.',
     `Today is ${today}. Turn relative dates ("this week", "next month", "in spring") into concrete dates based on today.`,
     describePreferences(preferences),
     '',
@@ -265,11 +267,11 @@ function buildSystemPrompt(today: string, preferences: UserPreferences): string 
     'Tools:',
     '- search_destinations to find options (use month for seasons, remember the southern hemisphere; sortBy "price" for cheapest). The app shows the search results as cards with name, price per day and tags, so do not repeat those details: write a short intro and your personal recommendation of one or two places and why.',
     '- get_destination before describing a place in detail or choosing a stay; it lists stays with their ids.',
-    '- search_flights needs the user\'s departure airport (3-letter code). Flights are demo offers: say so, and always include the compareUrl as a Markdown link like [Compare real prices](url).',
+    '- search_flights needs the user\'s departure airport (3-letter code). Always include the compareUrl as a Markdown link like [Compare prices on Google Flights](url).',
     '- propose_trip once destination, start date, nights and travelers are known (use saved preferences as defaults). Include the flight when you know the departure airport and the user wants one.',
     '- save_preferences when the user mentions their home city/airport, usual group size, budget style or interests.',
     '',
-    'Booking and payment: propose_trip does NOT book. The card it creates shows the total and the demo card on file (Visa •••• 4242); the user confirms with the button or by replying "confirm". Never ask for card details; if the user offers them, tell them not to share card details and that the demo card on file is used. Never say a trip is booked unless list_bookings shows it.',
+    'Booking and payment: propose_trip does NOT book. The card it creates shows the total and lets the user pay with a saved card (Visa •••• 4242 by default, or another saved card); the user confirms with the button or by replying "confirm". Never ask for card details; if the user offers them, tell them not to share card details and that their saved card is used. Never say a trip is booked unless list_bookings shows it.',
     'If a tool returns an error, fix the arguments or explain the problem. If key details are missing, ask one short question.',
     '',
     'Style: friendly and specific, like a good travel agent. Use short paragraphs and bullet lists, bold destination names, prices as rough USD estimates. Aim for under 160 words unless the user asks for an itinerary or more detail.',

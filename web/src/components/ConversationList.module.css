@@ -1,0 +1,46 @@
+.sectionLabel {
+  padding: 0 var(--mantine-spacing-xs);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mantine-color-dimmed);
+}
+
+.trip {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px;
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+}
+
+.tripMark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: var(--app-accent);
+  background: var(--app-accent-soft);
+}
+
+.tripName {
+  font-family: 'Fraunces Variable', Georgia, serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.chat {
+  border-radius: var(--mantine-radius-md);
+  margin-bottom: 2px;
+}
+
+.chat[data-active] {
+  background: var(--app-surface-muted);
+  color: inherit;
+}

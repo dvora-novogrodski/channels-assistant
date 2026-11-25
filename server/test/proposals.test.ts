@@ -141,3 +141,26 @@ describe('proposal confirmation', () => {
     expect(reply.text).toBe('There is nothing to confirm right now.');
   });
 });
+
+describe('saved payment methods', () => {
+  it('pays with the chosen saved card and falls back to the default for unknown ids', async () => {
+    const store = new InMemoryConversationStore();
+    const conversation = store.createConversation(ALICE);
+    const llm = new ScriptedLlm(
+      toolReply({ name: 'propose_trip', args: LISBON_BOOKING }),
+      textReply('Ready.'),
+      toolReply({ name: 'propose_trip', args: { ...LISBON_BOOKING, nights: 3 } }),
+      textReply('Ready again.'),
+    );
+    const assistant = new TripAssistant({ store, llm, now: () => TODAY });
+
+    const first = await assistant.handleMessage(ALICE, conversation.id, 'Book Lisbon');
+    const paid = assistant.resolveProposal(ALICE, conversation.id, first.reply.proposal?.id ?? '', 'confirm', 'mastercard-5454');
+    const second = await assistant.handleMessage(ALICE, conversation.id, 'Another one');
+    const fallback = assistant.resolveProposal(ALICE, conversation.id, second.reply.proposal?.id ?? '', 'confirm', 'stolen-card');
+
+    expect(paid.proposal.paymentMethod).toBe('Mastercard •••• 5454');
+    expect(paid.reply.text).toContain('Paid $425 with Mastercard •••• 5454');
+    expect(fallback.proposal.paymentMethod).toBe('Visa •••• 4242');
+  });
+});

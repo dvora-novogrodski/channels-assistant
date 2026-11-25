@@ -14,7 +14,7 @@ interface ChatViewProps {
   onSend: (text: string) => void;
   onRetry: (messageId: string) => void;
   onReload: () => void;
-  onResolveProposal: (proposalId: string, decision: ProposalDecision) => Promise<void>;
+  onResolveProposal: (proposalId: string, decision: ProposalDecision, paymentMethodId?: string) => Promise<void>;
 }
 
 export function ChatView({ messages, status, isSending, onSend, onRetry, onReload, onResolveProposal }: ChatViewProps) {
@@ -69,9 +69,6 @@ export function ChatView({ messages, status, isSending, onSend, onRetry, onReloa
       <Box pb="md" pt="xs">
         <Container size={760} px="md">
           <Composer isSending={isSending} disabled={status !== 'ready'} onSend={onSend} />
-          <Text fz={11} c="dimmed" ta="center" mt={8}>
-            Demo app: sample destinations, simulated flights and bookings, no real payments.
-          </Text>
         </Container>
       </Box>
     </>

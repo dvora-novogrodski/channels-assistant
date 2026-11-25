@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ChatMessage, ConversationSummary, ErrorKind, ProposalView } from '@app/shared';
+import type { BookingView, ChatMessage, ConversationSummary, ErrorKind, ProposalView } from '@app/shared';
 import { ApiRequestError, chatApi, type ProposalDecision } from './chatApi';
 import { getOrCreateUserId, readActiveConversationId, saveActiveConversationId } from './browserStorage.util';
 
@@ -33,6 +33,7 @@ export function useChat() {
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [messagesStatus, setMessagesStatus] = useState<LoadStatus>('ready');
   const [isSending, setIsSending] = useState(false);
+  const [bookings, setBookings] = useState<BookingView[]>([]);
 
   // Replies that arrive after the user switched chats must not be rendered into the new chat.
   const activeConversationRef = useRef<string | null>(null);
@@ -43,7 +44,16 @@ export function useChat() {
     saveActiveConversationId(conversationId);
   }, []);
 
+  const refreshBookings = useCallback(async () => {
+    try {
+      setBookings(await chatApi.listBookings(userId));
+    } catch {
+      return;
+    }
+  }, []);
+
   const refreshConversations = useCallback(async (): Promise<ConversationSummary[] | null> => {
+    void refreshBookings();
     try {
       const list = await chatApi.listConversations(userId);
       setConversations(list);
@@ -53,7 +63,7 @@ export function useChat() {
       setConversationsStatus('error');
       return null;
     }
-  }, []);
+  }, [refreshBookings]);
 
   const loadMessages = useCallback(async (conversationId: string) => {
     setMessagesStatus('loading');
@@ -136,24 +146,26 @@ export function useChat() {
     [messages, sendMessage],
   );
 
-  const resolveProposal = useCallback(async (proposalId: string, decision: ProposalDecision) => {
+  const resolveProposal = useCallback(async (proposalId: string, decision: ProposalDecision, paymentMethodId?: string) => {
     const conversationId = activeConversationRef.current;
     if (!conversationId) return;
 
     try {
-      const { proposal, reply } = await chatApi.resolveProposal(userId, conversationId, proposalId, decision);
+      const { proposal, reply } = await chatApi.resolveProposal(userId, conversationId, proposalId, decision, paymentMethodId);
       if (activeConversationRef.current !== conversationId) return;
       setMessages((previous) => withProposal([...previous, reply], proposal));
+      void refreshBookings();
     } catch (error) {
       throw new Error(describeError(error));
     }
-  }, []);
+  }, [refreshBookings]);
 
   const reloadMessages = useCallback(() => {
     if (activeConversationRef.current) void loadMessages(activeConversationRef.current);
   }, [loadMessages]);
 
   return {
+    bookings,
     conversations,
     conversationsStatus,
     activeConversationId,

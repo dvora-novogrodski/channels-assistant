@@ -6,9 +6,8 @@
     <title>Travel Assistant</title>
     <script>
       try {
-        var scheme = localStorage.getItem('mantine-color-scheme-value') || 'auto';
-        if (scheme === 'auto') scheme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-mantine-color-scheme', scheme);
+        var scheme = localStorage.getItem('mantine-color-scheme-value');
+        document.documentElement.setAttribute('data-mantine-color-scheme', scheme === 'dark' ? 'dark' : 'light');
       } catch (error) {}
     </script>
   </head>

@@ -1,5 +1,5 @@
 import type { Proposal } from '../src/core/store.js';
-import { DEMO_PAYMENT_METHOD } from '../src/core/tools.js';
+import { DEFAULT_PAYMENT_METHOD } from '../src/core/tools.js';
 
 export const LISBON_TRIP = { destinationId: 'lisbon-pt', startDate: '2027-05-12', nights: 5, travelers: 2 };
 
@@ -17,7 +17,7 @@ export function sampleProposal(overrides: Partial<Proposal> = {}): Proposal {
     costs: { stayUsd: 425, flightsUsd: 0 },
     estimatedTotalUsd: 425,
     dailyBudgetUsd: 140,
-    paymentMethod: DEMO_PAYMENT_METHOD,
+    paymentMethod: DEFAULT_PAYMENT_METHOD,
     status: 'proposed',
     ...overrides,
   };

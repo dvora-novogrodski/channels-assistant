@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import type { ResolveProposalRequest } from '@app/shared';
+import { SAVED_PAYMENT_METHODS, type ResolveProposalRequest } from '@app/shared';
 import type { Proposal, User } from './store.js';
 
 export type ProposalDecision = ResolveProposalRequest['decision'];
@@ -23,7 +23,13 @@ export function parseDecision(text: string): ProposalDecision | undefined {
 }
 
 // Idempotent: repeating the decision that already happened (a double click, a Slack retry) changes nothing.
-export function applyDecision(user: User, proposal: Proposal, decision: ProposalDecision, now: Date): DecisionOutcome {
+export function applyDecision(
+  user: User,
+  proposal: Proposal,
+  decision: ProposalDecision,
+  now: Date,
+  paymentMethodId?: string,
+): DecisionOutcome {
   const targetStatus = decision === 'confirm' ? 'confirmed' : 'cancelled';
   if (proposal.status === targetStatus) return { changed: false, text: describeOutcome(proposal) };
   if (proposal.status !== 'proposed') {
@@ -35,6 +41,8 @@ export function applyDecision(user: User, proposal: Proposal, decision: Proposal
     return { changed: true, text: describeOutcome(proposal) };
   }
 
+  const paymentMethod = SAVED_PAYMENT_METHODS.find(({ id }) => id === paymentMethodId);
+  if (paymentMethod) proposal.paymentMethod = paymentMethod.label;
   proposal.status = 'confirmed';
   proposal.bookingRef = createBookingRef();
   user.bookings.push({ ...proposal, bookingRef: proposal.bookingRef, confirmedAt: now.toISOString() });
@@ -50,8 +58,7 @@ function describeOutcome(proposal: Proposal): string {
   const contents = proposal.flight ? `${proposal.flight.airline} flights + ${proposal.stay.name}` : proposal.stay.name;
   return (
     `✅ Trip booked: ${proposal.destinationName}, ${proposal.country} · ${proposal.startDate} → ${proposal.endDate} · ` +
-    `${travelers} · ${contents}. Paid $${total} with ${proposal.paymentMethod}. Reference ${proposal.bookingRef}. ` +
-    '(Demo booking: no real reservation or payment was made.)'
+    `${travelers} · ${contents}. Paid $${total} with ${proposal.paymentMethod}. Reference ${proposal.bookingRef}.`
   );
 }
 

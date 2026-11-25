@@ -1,6 +1,7 @@
 import { Router, type Response } from 'express';
 import { z } from 'zod';
 import type {
+  BookingView,
   ChatMessage,
   ConversationSummary,
   CreateConversationRequest,
@@ -26,6 +27,7 @@ const SendMessageSchema = z.object({
 const ResolveProposalSchema = z.object({
   userId: z.uuid(),
   decision: z.enum(['confirm', 'cancel']),
+  paymentMethodId: z.string().optional(),
 }) satisfies z.ZodType<ResolveProposalRequest>;
 
 const ConversationParamsSchema = z.object({ conversationId: z.string().min(1) });
@@ -47,6 +49,11 @@ export function createWebRouter({ store, assistant }: WebRouterDependencies): Ro
   router.get('/conversations', (req, res: Response<ConversationSummary[]>) => {
     const { userId } = UserQuerySchema.parse(req.query);
     res.json(store.listConversations(toOwnerId(userId)));
+  });
+
+  router.get('/bookings', (req, res: Response<BookingView[]>) => {
+    const { userId } = UserQuerySchema.parse(req.query);
+    res.json([...store.getUser(toOwnerId(userId)).bookings].reverse());
   });
 
   router.post('/conversations', (req, res: Response<ConversationSummary>) => {
@@ -71,8 +78,8 @@ export function createWebRouter({ store, assistant }: WebRouterDependencies): Ro
     '/conversations/:conversationId/proposals/:proposalId',
     (req, res: Response<ResolveProposalResponse>) => {
       const { conversationId, proposalId } = ProposalParamsSchema.parse(req.params);
-      const { userId, decision } = ResolveProposalSchema.parse(req.body);
-      res.json(assistant.resolveProposal(toOwnerId(userId), conversationId, proposalId, decision));
+      const { userId, decision, paymentMethodId } = ResolveProposalSchema.parse(req.body);
+      res.json(assistant.resolveProposal(toOwnerId(userId), conversationId, proposalId, decision, paymentMethodId));
     },
   );
 
