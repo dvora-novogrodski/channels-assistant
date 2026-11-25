@@ -50,7 +50,7 @@ describe('proposal confirmation', () => {
     const { proposal, reply } = assistant.resolveProposal(ALICE, conversation.id, proposalId, 'confirm');
 
     expect(proposal).toMatchObject({ status: 'confirmed', bookingRef: expect.stringMatching(/^TRV-\d{4}$/) });
-    expect(reply.text).toContain(`Reference ${proposal.bookingRef}`);
+    expect(reply.text).toContain(`**Booking reference:** \`${proposal.bookingRef}\``);
     expect(store.getUser(ALICE).bookings).toEqual([
       expect.objectContaining({ id: proposalId, bookingRef: proposal.bookingRef, confirmedAt: TODAY.toISOString() }),
     ]);
@@ -160,7 +160,7 @@ describe('saved payment methods', () => {
     const fallback = assistant.resolveProposal(ALICE, conversation.id, second.reply.proposal?.id ?? '', 'confirm', 'stolen-card');
 
     expect(paid.proposal.paymentMethod).toBe('Mastercard •••• 5454');
-    expect(paid.reply.text).toContain('Paid $425 with Mastercard •••• 5454');
+    expect(paid.reply.text).toContain("**Paid:** $425 with Mastercard •••• 5454");
     expect(fallback.proposal.paymentMethod).toBe('Visa •••• 4242');
   });
 });

@@ -56,16 +56,27 @@ function describeOutcome(proposal: Proposal): string {
     return `Cancelled the proposed trip to ${proposal.destinationName}. Nothing was booked.`;
   }
   const travelers = `${proposal.travelers} traveler${proposal.travelers === 1 ? '' : 's'}`;
-  const total = proposal.estimatedTotalUsd.toLocaleString('en-US');
-  const flightCode = proposal.tickets?.flight
-    ? ` Flight booking code ${proposal.tickets.flight.recordLocator} (${proposal.flight?.airline}).`
-    : '';
-  const hotelCode = proposal.tickets ? ` Hotel confirmation ${proposal.tickets.stay.confirmationCode}.` : '';
-  return (
-    `✅ Trip booked: ${proposal.destinationName}, ${proposal.country} · ${proposal.startDate} → ${proposal.endDate} · ` +
-    `${travelers}. Paid $${total} with ${proposal.paymentMethod}. Reference ${proposal.bookingRef}.` +
-    `${flightCode}${hotelCode} Your e-tickets are on the booking card.`
-  );
+  const lines = [
+    `**✅ Trip booked: ${proposal.destinationName}, ${proposal.country}**`,
+    '',
+    `- **Dates:** ${formatDate(proposal.startDate)} – ${formatDate(proposal.endDate)} · ${travelers}`,
+    `- **Paid:** $${proposal.estimatedTotalUsd.toLocaleString('en-US')} with ${proposal.paymentMethod}`,
+    `- **Booking reference:** \`${proposal.bookingRef}\``,
+  ];
+  if (proposal.flight && proposal.tickets?.flight) {
+    lines.push(`- **Flight:** ${proposal.flight.airline} · booking code \`${proposal.tickets.flight.recordLocator}\``);
+  }
+  if (proposal.tickets) {
+    lines.push(`- **Hotel:** ${proposal.stay.name} · confirmation \`${proposal.tickets.stay.confirmationCode}\``);
+  }
+  lines.push('', 'Your e-tickets and hotel voucher are on the booking card above. Have a great trip!');
+  return lines.join('\n');
+}
+
+const dateFormat = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+
+function formatDate(isoDate: string): string {
+  return dateFormat.format(new Date(`${isoDate}T00:00:00Z`));
 }
 
 function createBookingRef(): string {

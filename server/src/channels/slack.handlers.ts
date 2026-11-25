@@ -233,7 +233,7 @@ export function createSlackHandlers({ store, assistant, log = console, pause = d
     const changed = card?.status !== result.proposal.status;
     if (changed && card && result.proposal.status === 'confirmed') await showBookingProgress(chat, card);
     if (changed) await refreshProposalCard(chat, result.proposal);
-    if (result.reply.error || changed) await postToChat(result.reply.text);
+    if (result.reply.error || changed) await postToChat(toSlackMrkdwn(result.reply.text));
   }
 
   return { handleMessage, handleButtonClick, handleQuickReply, handleNewTrip };
