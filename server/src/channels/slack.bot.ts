@@ -2,7 +2,7 @@ import { App, LogLevel, type BlockAction, type ButtonAction, type webApi } from 
 import type { TripAssistant } from '../core/assistant.js';
 import type { ProposalDecision } from '../core/proposals.js';
 import type { ConversationStore } from '../core/store.js';
-import { CANCEL_ACTION_ID, CONFIRM_ACTION_ID, QUICK_REPLY_ACTION_PREFIX } from './slack.blocks.js';
+import { CANCEL_ACTION_ID, CONFIRM_ACTION_ID, NEW_TRIP_ACTION_ID, QUICK_REPLY_ACTION_PREFIX } from './slack.blocks.js';
 import { createSlackHandlers, type SlackChat } from './slack.handlers.js';
 
 interface SlackBotSettings {
@@ -53,7 +53,7 @@ export async function startSlackBot({ botToken, appToken, store, assistant }: Sl
     });
   }
 
-  app.action<BlockAction<ButtonAction>>(new RegExp(`^${QUICK_REPLY_ACTION_PREFIX}\\d+$`), async ({ ack, body, action, client }) => {
+  app.action<BlockAction<ButtonAction>>(new RegExp(`^${QUICK_REPLY_ACTION_PREFIX}`), async ({ ack, body, action, client }) => {
     await ack();
     const channel = body.channel?.id;
     if (!channel) return;
@@ -61,6 +61,13 @@ export async function startSlackBot({ botToken, appToken, store, assistant }: Sl
       { userId: body.user.id, channel, actionTs: action.action_ts, value: action.value },
       toSlackChat(client),
     );
+  });
+
+  app.action<BlockAction<ButtonAction>>(NEW_TRIP_ACTION_ID, async ({ ack, body, action, client }) => {
+    await ack();
+    const channel = body.channel?.id;
+    if (!channel) return;
+    await handlers.handleNewTrip({ userId: body.user.id, channel, actionTs: action.action_ts }, toSlackChat(client));
   });
 
   app.error(async (error) => {

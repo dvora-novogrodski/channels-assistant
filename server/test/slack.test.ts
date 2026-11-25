@@ -1,8 +1,9 @@
-import type { KnownBlock } from '@slack/types';
+import type { ActionsBlockElement, KnownBlock, SectionBlockAccessory } from '@slack/types';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   CONFIRM_ACTION_ID,
-  THREAD_HINT,
+  NEW_TRIP_ACTION_ID,
+  SESSION_HINT,
   buildReplyContent,
   parseActionValue,
   toSlackMrkdwn,
@@ -22,6 +23,7 @@ import { ScriptedLlm, textReply, toolReply } from './scriptedLlm.js';
 
 const CHANNEL = 'D123';
 const LISBON_BOOKING = { destinationId: 'lisbon-pt', startDate: '2027-05-12', nights: 5, travelers: 2 };
+const SILENT_LOG = { warn: () => {}, error: () => {} };
 
 interface SentMessage {
   kind: 'post' | 'update';
@@ -56,14 +58,19 @@ function dm(text: string, overrides: Partial<IncomingSlackMessage> = {}): Incomi
   return { channel: CHANNEL, channelType: 'im', ts: '100.001', user: 'U1', text, ...overrides };
 }
 
-function findButtonValue(blocks: KnownBlock[] | undefined): string | undefined {
-  for (const block of blocks ?? []) {
-    if (block.type !== 'actions') continue;
-    for (const element of block.elements) {
-      if (element.type === 'button' && element.action_id === CONFIRM_ACTION_ID) return element.value;
-    }
-  }
-  return undefined;
+function buttons(blocks: KnownBlock[] | undefined): Array<ActionsBlockElement | SectionBlockAccessory> {
+  return (blocks ?? []).flatMap((block): Array<ActionsBlockElement | SectionBlockAccessory> => {
+    if (block.type === 'actions') return block.elements;
+    if (block.type === 'section' && block.accessory) return [block.accessory];
+    return [];
+  });
+}
+
+function buttonValue(blocks: KnownBlock[] | undefined, match: (actionId: string, label: string) => boolean) {
+  const button = buttons(blocks).find(
+    (element) => element.type === 'button' && match(element.action_id ?? '', element.text.text),
+  );
+  return button?.type === 'button' ? button.value : undefined;
 }
 
 describe('Slack handlers', () => {
@@ -77,33 +84,49 @@ describe('Slack handlers', () => {
     llm = new ScriptedLlm();
     chat = new FakeSlackChat();
     const assistant = new TripAssistant({ store, llm, now: () => new Date('2027-01-10T12:00:00Z') });
-    handlers = createSlackHandlers({ store, assistant, log: { warn: () => {}, error: () => {} } });
+    handlers = createSlackHandlers({ store, assistant, log: SILENT_LOG });
   });
 
-  it('replies in a thread by replacing a thinking placeholder, with a hint for new chats', async () => {
+  it('replies in the DM itself by replacing a placeholder, with a hint and a New trip button', async () => {
     llm.then(textReply('Try **Lisbon** in May.'));
 
     await handlers.handleMessage(dm('Europe in May?'), chat);
 
     const [placeholder, update] = chat.sent;
-    expect(placeholder).toMatchObject({ kind: 'post', thread_ts: '100.001', text: THINKING_TEXT });
+    expect(placeholder).toMatchObject({ kind: 'post', text: THINKING_TEXT });
+    expect(placeholder?.thread_ts).toBeUndefined();
     expect(update).toMatchObject({ kind: 'update', ts: placeholder?.ts, text: 'Try *Lisbon* in May.' });
-    expect(JSON.stringify(update?.blocks)).toContain(THREAD_HINT);
+    expect(JSON.stringify(update?.blocks)).toContain(SESSION_HINT);
+    expect(buttonValue(update?.blocks, (actionId) => actionId === NEW_TRIP_ACTION_ID)).toBeDefined();
   });
 
-  it('treats each thread as its own conversation and keeps follow-ups in it', async () => {
-    llm.then(textReply('First chat'), textReply('Follow-up'), textReply('Second chat'));
+  it('keeps one conversation per DM until the user starts a new trip', async () => {
+    llm.then(textReply('First'), textReply('Follow-up'), textReply('Fresh start'));
 
     await handlers.handleMessage(dm('Hi', { ts: '100.001' }), chat);
-    await handlers.handleMessage(dm('More please', { ts: '100.002', threadTs: '100.001' }), chat);
-    await handlers.handleMessage(dm('New topic', { ts: '200.001' }), chat);
+    await handlers.handleMessage(dm('More please', { ts: '100.002' }), chat);
+    await handlers.handleMessage(dm('new trip', { ts: '200.000' }), chat);
+    await handlers.handleMessage(dm('Somewhere cold', { ts: '200.001' }), chat);
 
     expect(store.listConversations('slack:U1').map(({ id }) => id).sort()).toEqual([
       'slack:D123:100.001',
-      'slack:D123:200.001',
+      'slack:D123:200.000',
     ]);
-    expect(llm.requests[1]?.messages.map((message) => message.role)).toEqual(['user', 'assistant', 'user']);
+    expect(llm.requests[1]?.messages.map(({ role }) => role)).toEqual(['user', 'assistant', 'user']);
     expect(llm.requests[2]?.messages).toHaveLength(1);
+    expect(chat.sent.some(({ text }) => text.includes('New trip started'))).toBe(true);
+  });
+
+  it('starts a new trip from the button, once per click', async () => {
+    llm.then(textReply('First'), textReply('Second'));
+    await handlers.handleMessage(dm('Hi', { ts: '100.001' }), chat);
+
+    await handlers.handleNewTrip({ userId: 'U1', channel: CHANNEL, actionTs: '150.000' }, chat);
+    await handlers.handleNewTrip({ userId: 'U1', channel: CHANNEL, actionTs: '150.000' }, chat);
+    await handlers.handleMessage(dm('Hello again', { ts: '150.001' }), chat);
+
+    expect(chat.sent.filter(({ text }) => text.includes('New trip started'))).toHaveLength(1);
+    expect(llm.requests[1]?.messages).toHaveLength(1);
   });
 
   it('processes a duplicate Slack event only once', async () => {
@@ -140,22 +163,21 @@ describe('Slack handlers', () => {
     llm.then(toolReply({ name: 'propose_trip', args: LISBON_BOOKING }), textReply('Here is your stay.'));
     await handlers.handleMessage(dm('Book Lisbon'), chat);
     const card = chat.sent.find((message) => message.kind === 'update');
-    const value = findButtonValue(card?.blocks);
+    const value = buttonValue(card?.blocks, (actionId) => actionId === CONFIRM_ACTION_ID);
     expect(value).toBeDefined();
 
     await handlers.handleButtonClick({ userId: 'U1', channel: CHANNEL, decision: 'confirm', value }, chat);
     await handlers.handleButtonClick({ userId: 'U1', channel: CHANNEL, decision: 'confirm', value }, chat);
 
     const updatedCard = chat.lastUpdateOf(card?.ts ?? '');
-    expect(findButtonValue(updatedCard?.blocks)).toBeUndefined();
+    expect(buttonValue(updatedCard?.blocks, (actionId) => actionId === CONFIRM_ACTION_ID)).toBeUndefined();
     expect(JSON.stringify(updatedCard?.blocks)).toContain('Booked');
     const outcomes = chat.sent.filter((message) => message.text.includes('Trip booked: Lisbon'));
     expect(outcomes).toHaveLength(1);
-    expect(outcomes[0]).toMatchObject({ kind: 'post', thread_ts: '100.001' });
     expect(store.getUser('slack:U1').bookings).toHaveLength(1);
   });
 
-  it('marks the old card as replaced when a new proposal is made in the thread', async () => {
+  it('marks the old card as replaced when a new proposal is made', async () => {
     llm.then(
       toolReply({ name: 'propose_trip', args: LISBON_BOOKING }),
       textReply('5 nights proposed.'),
@@ -165,7 +187,7 @@ describe('Slack handlers', () => {
     await handlers.handleMessage(dm('Book Lisbon'), chat);
     const firstCard = chat.sent.find((message) => message.kind === 'update');
 
-    await handlers.handleMessage(dm('Make it 3 nights', { ts: '100.005', threadTs: '100.001' }), chat);
+    await handlers.handleMessage(dm('Make it 3 nights', { ts: '100.005' }), chat);
 
     expect(JSON.stringify(chat.lastUpdateOf(firstCard?.ts ?? '')?.blocks)).toContain('Replaced by a newer proposal');
   });
@@ -173,7 +195,10 @@ describe('Slack handlers', () => {
   it("does not let another Slack user confirm someone else's proposal", async () => {
     llm.then(toolReply({ name: 'propose_trip', args: LISBON_BOOKING }), textReply('Here is your stay.'));
     await handlers.handleMessage(dm('Book Lisbon'), chat);
-    const value = findButtonValue(chat.sent.find((message) => message.kind === 'update')?.blocks);
+    const value = buttonValue(
+      chat.sent.find((message) => message.kind === 'update')?.blocks,
+      (actionId) => actionId === CONFIRM_ACTION_ID,
+    );
 
     await handlers.handleButtonClick({ userId: 'U2', channel: CHANNEL, decision: 'confirm', value }, chat);
 
@@ -191,6 +216,27 @@ describe('Slack handlers', () => {
     await expect(handlers.handleMessage(dm('Hi'), failingChat)).resolves.toBeUndefined();
     expect(store.listMessages('slack:U1', 'slack:D123:100.001')).toHaveLength(2);
   });
+
+  it('shows quick replies and destination cards as buttons that continue the chat', async () => {
+    llm.then(
+      toolReply({ name: 'search_destinations', args: { region: 'Oceania' } }),
+      textReply('Two great picks.\nQuick replies: Show cheaper | Tell me more'),
+      textReply('Planning Sydney.'),
+    );
+
+    await handlers.handleMessage(dm('Oceania?'), chat);
+    const reply = chat.sent.find((message) => message.kind === 'update');
+    const planValue = buttonValue(reply?.blocks, (_actionId, label) => label === 'Plan this trip');
+    expect(reply?.text).toBe('Two great picks.');
+    expect(buttonValue(reply?.blocks, (_actionId, label) => label === 'Show cheaper')).toBeDefined();
+    expect(planValue).toBeDefined();
+
+    await handlers.handleQuickReply({ userId: 'U1', channel: CHANNEL, actionTs: '1.1', value: planValue }, chat);
+    await handlers.handleQuickReply({ userId: 'U1', channel: CHANNEL, actionTs: '1.1', value: planValue }, chat);
+
+    expect(llm.requests).toHaveLength(3);
+    expect(llm.requests[2]?.messages.at(-1)).toMatchObject({ role: 'user', text: expect.stringMatching(/^Plan a trip to /) });
+  });
 });
 
 describe('Slack formatting', () => {
@@ -204,20 +250,28 @@ describe('Slack formatting', () => {
     expect(toSlackMrkdwn('Ping <!channel> & compare a < b')).toBe('Ping &lt;!channel&gt; &amp; compare a &lt; b');
   });
 
-  it('includes a plain-text fallback for proposals', () => {
-    const { text } = buildReplyContent(
-      {
-        id: 'm1',
-        role: 'assistant',
-        text: 'Here you go',
-        createdAt: '',
-        proposal: sampleProposal(),
+  it('renders the trip card with a route header and a plain-text fallback', () => {
+    const proposal = sampleProposal({
+      flight: {
+        airline: 'Skylark Air',
+        flightNumber: 'SKL 101',
+        originAirport: 'TLV',
+        destinationAirport: 'LIS',
+        departTime: '08:00',
+        durationHours: 5,
+        stops: 0,
+        priceUsdPerTraveler: 300,
+        compareUrl: 'https://www.google.com/travel/flights?q=x',
       },
-      { conversationId: 'c', threadTs: 't' },
-      { showThreadHint: false },
+    });
+    const { text, blocks } = buildReplyContent(
+      { id: 'm1', role: 'assistant', text: 'Here you go', createdAt: '', proposal },
+      'c',
+      { showSessionHint: false },
     );
 
     expect(text).toContain('Reply "confirm" or "cancel"');
+    expect(blocks).toContainEqual(expect.objectContaining({ type: 'header', text: expect.objectContaining({ text: 'TLV  ✈  LIS' }) }));
   });
 
   it('rejects malformed button values', () => {
@@ -240,34 +294,5 @@ describe('Slack config', () => {
     const config = loadConfig({ GEMINI_API_KEY: 'k', SLACK_BOT_TOKEN: 'xoxe.xoxb-1-abc', SLACK_APP_TOKEN: 'xoxe.xapp-1-abc' });
 
     expect(config).toMatchObject({ SLACK_BOT_TOKEN: 'xoxe.xoxb-1-abc', SLACK_APP_TOKEN: 'xoxe.xapp-1-abc' });
-  });
-});
-
-describe('Slack quick replies', () => {
-  it('shows quick replies as buttons and runs a click as the next message in the thread', async () => {
-    const store = new InMemoryConversationStore();
-    const llm = new ScriptedLlm(
-      textReply('Try Lisbon.\nQuick replies: Show cheaper | Tell me more'),
-      textReply('Here are cheaper options.'),
-    );
-    const assistant = new TripAssistant({ store, llm, now: () => new Date('2027-01-10T12:00:00Z') });
-    const handlers = createSlackHandlers({ store, assistant, log: { warn: () => {}, error: () => {} } });
-    const chat = new FakeSlackChat();
-
-    await handlers.handleMessage(dm('Ideas?'), chat);
-    const reply = chat.sent.find((message) => message.kind === 'update');
-    const quickReplyButton = (reply?.blocks ?? [])
-      .flatMap((block) => (block.type === 'actions' ? block.elements : []))
-      .find((element) => element.type === 'button' && element.text.text === 'Show cheaper');
-    expect(reply?.text).toBe('Try Lisbon.');
-    expect(quickReplyButton).toBeDefined();
-
-    const value = quickReplyButton?.type === 'button' ? quickReplyButton.value : undefined;
-    await handlers.handleQuickReply({ userId: 'U1', channel: CHANNEL, actionTs: '1.1', value }, chat);
-    await handlers.handleQuickReply({ userId: 'U1', channel: CHANNEL, actionTs: '1.1', value }, chat);
-
-    expect(llm.requests).toHaveLength(2);
-    expect(llm.requests[1]?.messages.at(-1)).toEqual({ role: 'user', text: 'Show cheaper' });
-    expect(chat.sent.some((message) => message.text.includes('_Show cheaper_'))).toBe(true);
   });
 });

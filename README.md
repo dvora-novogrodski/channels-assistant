@@ -36,7 +36,7 @@ The service runs on Render's free tier. If it has been idle, the first request c
 flowchart LR
   subgraph Channels
     W[React + Mantine web app] -->|REST /api| R[web.router.ts]
-    S[Slack DM threads] -->|Socket Mode| B[slack.bot.ts / slack.handlers.ts]
+    S[Slack direct messages] -->|Socket Mode| B[slack.bot.ts / slack.handlers.ts]
   end
   R --> A[TripAssistant<br/>core/assistant.ts]
   B --> A
@@ -62,7 +62,7 @@ docs/              Slack setup and deployment guides
 
 ## Design decisions
 
-**Slack, with one thread per conversation.** Slack is free (no SMS verification) and familiar to reviewers. Socket Mode means no public webhook or request signing, and it supports buttons. Each new direct message starts a conversation, and the bot answers in a thread. Replies in that thread are follow-ups, and the DM's thread list is the history. This gives Slack a native "new chat" and "history" without commands. The trade-off is that a follow-up written outside the thread starts a new chat, so the first reply in every thread says so.
+**Slack, as one flat chat with "New trip".** Slack is free (no SMS verification) and familiar to reviewers. Socket Mode means no public webhook or request signing, and it supports buttons. The DM works like chatting with a person: every message continues the current trip conversation, and the bot answers in the main chat instead of hiding replies in threads. A **New trip** button on every reply (or typing `new trip`) starts a fresh conversation. I first used one thread per conversation, but replies hidden in threads were clunky to follow. The trade-off is that older trips are not separated visually, which the explicit "New trip" marker makes up for.
 
 **Users and conversations are separate.** Bookings belong to the user (`web:<uuid>` or `slack:<user id>`), so they are visible from any chat. LLM history belongs to the conversation. Every read checks ownership, and an unknown id and someone else's id return the same 404, so ids cannot be probed.
 

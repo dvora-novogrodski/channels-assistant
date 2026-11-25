@@ -1,27 +1,25 @@
 import type { KnownBlock } from '@slack/types';
 import { z } from 'zod';
-import type { ChatMessage, ProposalStatus, ProposalView } from '@app/shared';
+import type { ChatMessage, DestinationCardView, ProposalStatus, ProposalView } from '@app/shared';
 
 export const CONFIRM_ACTION_ID = 'proposal_confirm';
 export const CANCEL_ACTION_ID = 'proposal_cancel';
+export const NEW_TRIP_ACTION_ID = 'new_trip';
 export const QUICK_REPLY_ACTION_PREFIX = 'quick_reply_';
 
-export const THREAD_HINT = 'Reply in this thread to continue. A new direct message starts a new chat.';
+export const SESSION_HINT = 'Tip: everything stays in this chat. Type *new trip* or press *New trip* to start fresh.';
+const MAX_DESTINATION_CARDS = 5;
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const STATUS_LINES: Record<ProposalStatus, string> = {
-  proposed: ':large_yellow_circle: *Proposal, not booked yet*',
+  proposed: ':large_orange_circle: *Ready to book* · nothing is charged until you confirm',
   confirmed: ':white_check_mark: *Booked*',
   cancelled: ':x: *Cancelled*, nothing was booked',
   superseded: ':leftwards_arrow_with_hook: *Replaced by a newer proposal*',
 };
 
-export const ProposalActionValueSchema = z.object({
-  conversationId: z.string(),
-  proposalId: z.string(),
-  threadTs: z.string(),
-});
-
-export const QuickReplyValueSchema = z.object({ threadTs: z.string(), text: z.string().min(1) });
+export const ProposalActionValueSchema = z.object({ conversationId: z.string(), proposalId: z.string() });
+export const QuickReplyValueSchema = z.object({ text: z.string().min(1) });
 
 export type ProposalActionValue = z.infer<typeof ProposalActionValueSchema>;
 export type QuickReplyValue = z.infer<typeof QuickReplyValueSchema>;
@@ -47,28 +45,39 @@ export function toSlackMrkdwn(markdown: string): string {
 
 export function buildReplyContent(
   reply: ChatMessage,
-  actionValue: Omit<ProposalActionValue, 'proposalId'>,
-  options: { showThreadHint: boolean },
+  conversationId: string,
+  options: { showSessionHint: boolean },
 ): SlackMessageContent {
-  const text = reply.error ? describeError(reply) : toSlackMrkdwn(reply.text);
+  const text = reply.error ? `:warning: ${reply.text}` : toSlackMrkdwn(reply.text);
   const blocks: KnownBlock[] = [{ type: 'section', text: { type: 'mrkdwn', text } }];
 
-  if (reply.proposal) {
-    blocks.push(...buildProposalBlocks(reply.proposal, { ...actionValue, proposalId: reply.proposal.id }));
-  }
-  if (reply.quickReplies?.length) {
-    blocks.push(buildQuickReplyBlock(reply.quickReplies, actionValue.threadTs));
-  }
-  if (options.showThreadHint) {
-    blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: THREAD_HINT }] });
-  }
+  if (reply.destinations?.length) blocks.push(...buildDestinationBlocks(reply.destinations));
+  if (reply.proposal) blocks.push(...buildProposalBlocks(reply.proposal, { conversationId, proposalId: reply.proposal.id }));
+  blocks.push(buildActionsBlock(reply.quickReplies ?? []));
+  if (options.showSessionHint) blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: SESSION_HINT }] });
 
   return { text: reply.proposal ? `${text}\n\n${describeProposal(reply.proposal)}` : text, blocks };
 }
 
+export function buildNewTripContent(): SlackMessageContent {
+  const text = ':luggage: *New trip started.* Where would you like to go?';
+  return {
+    text,
+    blocks: [
+      { type: 'section', text: { type: 'mrkdwn', text } },
+      buildActionsBlock(['Somewhere warm in February', 'A city break in Europe', 'Surprise me']),
+    ],
+  };
+}
+
 export function buildProposalBlocks(proposal: ProposalView, actionValue: ProposalActionValue): KnownBlock[] {
+  const route = proposal.flight
+    ? `${proposal.flight.originAirport}  ✈  ${proposal.flight.destinationAirport}`
+    : `Stay in ${proposal.destinationName}`;
+
   const blocks: KnownBlock[] = [
     { type: 'divider' },
+    { type: 'header', text: { type: 'plain_text', text: route, emoji: true } },
     {
       type: 'section',
       text: {
@@ -94,8 +103,8 @@ export function buildProposalBlocks(proposal: ProposalView, actionValue: Proposa
       text: {
         type: 'mrkdwn',
         text:
-          `*Total ${usd(proposal.estimatedTotalUsd)}* · ${proposal.paymentMethod}\n` +
-          `Plus about ${usd(proposal.dailyBudgetUsd)} per person per day for food and activities (not charged).`,
+          `*Total  ${usd(proposal.estimatedTotalUsd)}*\n:credit_card: ${proposal.paymentMethod}\n` +
+          `_Plus about ${usd(proposal.dailyBudgetUsd)} per person per day for food and activities._`,
       },
     },
     { type: 'context', elements: [{ type: 'mrkdwn', text: describeStatus(proposal) }] },
@@ -137,15 +146,43 @@ function parseJson<T>(value: string | undefined, schema: z.ZodType<T>): T | unde
   }
 }
 
-function buildQuickReplyBlock(quickReplies: string[], threadTs: string): KnownBlock {
+function buildDestinationBlocks(destinations: DestinationCardView[]): KnownBlock[] {
+  const cards: KnownBlock[] = destinations.slice(0, MAX_DESTINATION_CARDS).map((destination, index) => ({
+    type: 'section',
+    text: {
+      type: 'mrkdwn',
+      text:
+        `*${destination.name}*, ${destination.country}  ·  _${destination.region}_\n` +
+        `*${usd(destination.dailyCostUsd)}*/day · ${destination.budgetTier} · best in ${formatMonths(destination.bestMonths)}\n` +
+        destination.tags.slice(0, 3).map((tag) => `\`${tag}\``).join(' '),
+    },
+    accessory: {
+      type: 'button',
+      action_id: `${QUICK_REPLY_ACTION_PREFIX}plan_${index}`,
+      text: { type: 'plain_text', text: 'Plan this trip' },
+      value: JSON.stringify({ text: `Plan a trip to ${destination.name}` } satisfies QuickReplyValue),
+    },
+  }));
+  return [{ type: 'divider' }, ...cards];
+}
+
+function buildActionsBlock(quickReplies: string[]): KnownBlock {
   return {
     type: 'actions',
-    elements: quickReplies.map((text, index) => ({
-      type: 'button',
-      action_id: `${QUICK_REPLY_ACTION_PREFIX}${index}`,
-      text: { type: 'plain_text', text },
-      value: JSON.stringify({ threadTs, text } satisfies QuickReplyValue),
-    })),
+    elements: [
+      ...quickReplies.map((text, index) => ({
+        type: 'button' as const,
+        action_id: `${QUICK_REPLY_ACTION_PREFIX}${index}`,
+        text: { type: 'plain_text' as const, text },
+        value: JSON.stringify({ text } satisfies QuickReplyValue),
+      })),
+      {
+        type: 'button',
+        action_id: NEW_TRIP_ACTION_ID,
+        text: { type: 'plain_text', text: ':luggage: New trip', emoji: true },
+        value: 'new_trip',
+      },
+    ],
   };
 }
 
@@ -157,8 +194,8 @@ function describeFlightField(proposal: ProposalView) {
     type: 'mrkdwn' as const,
     text:
       `*:airplane: Flight*\n${flight.airline} ${flight.flightNumber}\n` +
-      `${flight.originAirport} → ${flight.destinationAirport} · ${stops} · ${flight.durationHours}h · ${flight.departTime}\n` +
-      `${usd(flight.priceUsdPerTraveler)} × ${proposal.travelers} = ${usd(proposal.costs.flightsUsd)}`,
+      `${stops} · ${flight.durationHours}h · departs ${flight.departTime}\n` +
+      `${usd(flight.priceUsdPerTraveler)} × ${proposal.travelers} = *${usd(proposal.costs.flightsUsd)}*`,
   };
 }
 
@@ -169,15 +206,13 @@ function describeStayField(proposal: ProposalView) {
     type: 'mrkdwn' as const,
     text:
       `*:hotel: Stay*\n${stay.name} · ★ ${stay.rating}\n` +
-      `${usd(stay.nightlyRateUsd)}/night × ${proposal.nights} × ${rooms}\n= ${usd(proposal.costs.stayUsd)}`,
+      `${usd(stay.nightlyRateUsd)}/night × ${proposal.nights} × ${rooms}\n= *${usd(proposal.costs.stayUsd)}*`,
   };
 }
 
 function describeStatus(proposal: ProposalView): string {
   const statusLine = STATUS_LINES[proposal.status];
-  if (proposal.status === 'confirmed' && proposal.bookingRef) {
-    return `${statusLine} · Reference *${proposal.bookingRef}*`;
-  }
+  if (proposal.status === 'confirmed' && proposal.bookingRef) return `${statusLine} · Reference *${proposal.bookingRef}*`;
   if (proposal.status === 'proposed') return `${statusLine} · or reply "confirm" / "cancel"`;
   return statusLine;
 }
@@ -191,8 +226,9 @@ function describeProposal(proposal: ProposalView): string {
   );
 }
 
-function describeError(reply: ChatMessage): string {
-  return `:warning: ${reply.text}`;
+function formatMonths(months: number[]): string {
+  const names = [...months].sort((a, b) => a - b).map((month) => MONTH_NAMES[month - 1] ?? '');
+  return names.length <= 4 ? names.join(', ') : `${names.slice(0, 4).join(', ')} +${names.length - 4}`;
 }
 
 function usd(amount: number): string {

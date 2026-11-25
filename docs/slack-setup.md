@@ -35,12 +35,12 @@ The log should show `Slack bot connected (Socket Mode)`. In Slack, open **Apps â
 
 ## Conversation model
 
-- Each **new direct message** starts a new conversation. The bot replies in a thread under it.
-- **Replies in that thread** are follow-ups in the same conversation.
-- The DM itself is the chat history: every thread is one past chat.
-- Conversation id: `slack:<channel>:<thread ts>`; user id: `slack:<Slack user id>`.
+- The DM is **one flat chat**: every message continues the current trip conversation, and replies appear in the main chat.
+- Every reply has a **New trip** button; pressing it (or typing `new trip`) starts a fresh conversation.
+- Destination suggestions have **Plan this trip** buttons, and quick replies appear as buttons too.
+- Conversation id: `slack:<channel>:<timestamp of the trip's first message>`; user id: `slack:<Slack user id>`.
 
-Why threads: they give Slack a native "new chat" and "history" without extra commands, and follow-ups stay clearly grouped. The trade-off is that a follow-up sent outside the thread starts a new chat, which is why the first reply in each thread says so.
+Why not threads: replies hidden in threads were clunky to follow, and a follow-up typed outside the thread silently started a new chat. A flat chat with an explicit "New trip" action behaves like messaging a person. The current trip per DM is kept in memory, so a server restart starts a new conversation.
 
 ## Inviting reviewers
 
