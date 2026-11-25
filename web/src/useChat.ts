@@ -8,7 +8,7 @@ export type UiErrorKind = ErrorKind | 'network';
 
 export interface UiMessage extends Omit<ChatMessage, 'error'> {
   error?: { kind: UiErrorKind; retryable: boolean };
-  retryText?: string;
+  retry?: { text: string; userMessageId: string };
 }
 
 const userId = getOrCreateUserId();
@@ -24,10 +24,6 @@ function localMessage(role: UiMessage['role'], text: string, error?: UiMessage['
 function withProposal(messages: UiMessage[], proposal: ProposalView | undefined): UiMessage[] {
   if (!proposal) return messages;
   return messages.map((message) => (message.proposal?.id === proposal.id ? { ...message, proposal } : message));
-}
-
-function toUiReply(reply: ChatMessage, sentText: string): UiMessage {
-  return reply.error?.retryable ? { ...reply, retryText: sentText } : reply;
 }
 
 export function useChat() {
@@ -95,43 +91,47 @@ export function useChat() {
     })();
   }, [refreshConversations, selectConversation]);
 
-  const ensureConversation = useCallback(async (): Promise<string> => {
-    if (activeConversationRef.current) return activeConversationRef.current;
+  const createConversationFor = useCallback(async (): Promise<string> => {
     const created = await chatApi.createConversation(userId);
-    activate(created.id);
+    void refreshConversations();
+    if (activeConversationRef.current === null) activate(created.id);
     return created.id;
-  }, [activate]);
+  }, [activate, refreshConversations]);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, replacedMessageIds: string[] = []) => {
       if (isSending) return;
+      const startedIn = activeConversationRef.current;
+      const userMessage = localMessage('user', text);
+      const retry = { text, userMessageId: userMessage.id };
+      let conversationId = startedIn;
+
       setIsSending(true);
-      setMessages((previous) => [...previous, localMessage('user', text)]);
+      setMessages((previous) => [...previous.filter(({ id }) => !replacedMessageIds.includes(id)), userMessage]);
       try {
-        const conversationId = await ensureConversation();
+        conversationId = startedIn ?? (await createConversationFor());
         const { reply, updatedProposal } = await chatApi.sendMessage(userId, conversationId, text);
         if (activeConversationRef.current !== conversationId) return;
-        setMessages((previous) => withProposal([...previous, toUiReply(reply, text)], updatedProposal));
+        const uiReply: UiMessage = reply.error?.retryable ? { ...reply, retry } : reply;
+        setMessages((previous) => withProposal([...previous, uiReply], updatedProposal));
         void refreshConversations();
       } catch (error) {
-        const failure = { ...localMessage('assistant', describeError(error), { kind: 'network', retryable: true }), retryText: text };
+        if (activeConversationRef.current !== conversationId) return;
+        const failure = { ...localMessage('assistant', describeError(error), { kind: 'network', retryable: true }), retry };
         setMessages((previous) => [...previous, failure]);
       } finally {
         setIsSending(false);
       }
     },
-    [isSending, ensureConversation, refreshConversations],
+    [isSending, createConversationFor, refreshConversations],
   );
 
   const retryMessage = useCallback(
     (failedMessageId: string) => {
-      const failedIndex = messages.findIndex(({ id }) => id === failedMessageId);
-      const retryText = messages[failedIndex]?.retryText;
-      if (failedIndex === -1 || !retryText) return;
-
-      // The server saved neither the failed message nor its reply, so drop both and send again.
-      setMessages((previous) => previous.filter((_message, index) => index !== failedIndex && index !== failedIndex - 1));
-      void sendMessage(retryText);
+      const retry = messages.find(({ id }) => id === failedMessageId)?.retry;
+      if (!retry) return;
+      // The server saved neither the failed message nor its reply, so both are replaced by a fresh send.
+      void sendMessage(retry.text, [failedMessageId, retry.userMessageId]);
     },
     [messages, sendMessage],
   );

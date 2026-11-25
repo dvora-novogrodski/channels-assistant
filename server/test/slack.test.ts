@@ -199,6 +199,10 @@ describe('Slack formatting', () => {
     );
   });
 
+  it('escapes Slack control characters in model text', () => {
+    expect(toSlackMrkdwn('Ping <!channel> & compare a < b')).toBe('Ping &lt;!channel&gt; &amp; compare a &lt; b');
+  });
+
   it('includes a plain-text fallback for proposals', () => {
     const { text } = buildReplyContent(
       {

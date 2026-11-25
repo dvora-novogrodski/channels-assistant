@@ -8,7 +8,11 @@ interface HttpError {
   message: string;
 }
 
-export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
+export const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
   const { status, message } = toHttpError(error);
   if (status >= 500) console.error(`${req.method} ${req.originalUrl} failed`, error);
   res.status(status).json({ error: message } satisfies ApiErrorBody);

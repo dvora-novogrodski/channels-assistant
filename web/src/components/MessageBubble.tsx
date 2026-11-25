@@ -1,6 +1,6 @@
 import { Alert, Button, Group, Paper, Stack, Text, Typography } from '@mantine/core';
 import { IconAlertTriangle, IconClockPause, IconRefresh, IconWifiOff } from '@tabler/icons-react';
-import Markdown from 'react-markdown';
+import Markdown, { type Components } from 'react-markdown';
 import type { ProposalDecision } from '../chatApi';
 import type { UiErrorKind, UiMessage } from '../useChat';
 import { ProposalCard } from './ProposalCard';
@@ -13,6 +13,10 @@ const ERROR_PRESENTATION: Record<UiErrorKind, { title: string; color: string; ic
   blocked: { title: "Can't help with that", color: 'orange', icon: IconAlertTriangle },
   internal: { title: 'Something went wrong', color: 'red', icon: IconAlertTriangle },
   network: { title: 'Connection problem', color: 'red', icon: IconWifiOff },
+};
+
+const MARKDOWN_COMPONENTS: Components = {
+  a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
 };
 
 interface MessageBubbleProps {
@@ -42,7 +46,7 @@ export function MessageBubble({ message, onRetry, onResolveProposal }: MessageBu
             </Text>
           ) : (
             <Typography className={classes.markdown} fz="sm">
-              <Markdown>{message.text}</Markdown>
+              <Markdown components={MARKDOWN_COMPONENTS}>{message.text}</Markdown>
             </Typography>
           )}
         </Paper>
@@ -70,7 +74,7 @@ function ErrorBubble({ message, onRetry }: Pick<MessageBubbleProps, 'message' | 
       >
         <Stack gap="xs" align="flex-start">
           <Text size="sm">{message.text}</Text>
-          {message.retryText && (
+          {message.retry && (
             <Button
               size="xs"
               variant="light"

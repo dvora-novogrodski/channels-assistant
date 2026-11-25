@@ -28,8 +28,12 @@ export interface SlackMessageContent {
 }
 
 // Gemini replies in GitHub-style Markdown; Slack's mrkdwn uses *bold*, <url|label> links and no headings.
+// &, < and > are escaped first so model text can never form Slack control sequences such as <!channel>.
 export function toSlackMrkdwn(markdown: string): string {
   return markdown
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
     .replace(/\*\*(.+?)\*\*/g, '*$1*')
     .replace(/__(.+?)__/g, '*$1*')
     .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<$2|$1>')
