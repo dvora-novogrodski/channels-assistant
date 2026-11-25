@@ -1,0 +1,32 @@
+.ticket {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-surface);
+  border: 1px dashed var(--app-border);
+}
+
+.label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mantine-color-dimmed);
+}
+
+.route {
+  font-family: 'Fraunces Variable', Georgia, serif;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.code {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--app-accent);
+}

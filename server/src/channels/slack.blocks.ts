@@ -1,6 +1,6 @@
 import type { KnownBlock } from '@slack/types';
 import { z } from 'zod';
-import type { ChatMessage, DestinationCardView, ProposalStatus, ProposalView } from '@app/shared';
+import type { ChatMessage, DestinationCardView, FlightLeg, ProposalStatus, ProposalView } from '@app/shared';
 
 export const CONFIRM_ACTION_ID = 'proposal_confirm';
 export const CANCEL_ACTION_ID = 'proposal_cancel';
@@ -110,6 +110,8 @@ export function buildProposalBlocks(proposal: ProposalView, actionValue: Proposa
     { type: 'context', elements: [{ type: 'mrkdwn', text: describeStatus(proposal) }] },
   );
 
+  if (proposal.status === 'confirmed' && proposal.tickets) blocks.push(...buildTicketBlocks(proposal));
+
   if (proposal.status === 'proposed') {
     const value = JSON.stringify(actionValue);
     blocks.push({
@@ -144,6 +146,48 @@ function parseJson<T>(value: string | undefined, schema: z.ZodType<T>): T | unde
   } catch {
     return undefined;
   }
+}
+
+function buildTicketBlocks(proposal: ProposalView): KnownBlock[] {
+  const { tickets, flight } = proposal;
+  if (!tickets) return [];
+
+  const legField = (label: string, leg: FlightLeg) => ({
+    type: 'mrkdwn' as const,
+    text:
+      `*${label}* · ${leg.date}\n*${leg.from} → ${leg.to}*\n` +
+      `${flight?.flightNumber ?? ''} · ${leg.departs} → ${leg.arrives}${leg.arrivesNextDay ? ' (+1)' : ''}`,
+  });
+
+  const blocks: KnownBlock[] = [
+    { type: 'header', text: { type: 'plain_text', text: ':ticket: Your tickets', emoji: true } },
+  ];
+  if (tickets.flight) {
+    blocks.push(
+      { type: 'section', fields: [legField('Outbound', tickets.flight.outbound), legField('Return', tickets.flight.inbound)] },
+      {
+        type: 'context',
+        elements: [
+          {
+            type: 'mrkdwn',
+            text:
+              `Booking code *${tickets.flight.recordLocator}* · seats ${tickets.flight.seats.join(', ')} · ` +
+              `e-tickets ${tickets.flight.ticketNumbers.join(', ')}`,
+          },
+        ],
+      },
+    );
+  }
+  blocks.push({
+    type: 'section',
+    text: {
+      type: 'mrkdwn',
+      text:
+        `:hotel: *Hotel voucher* · ${proposal.stay.name}\nConfirmation *${tickets.stay.confirmationCode}* · ` +
+        `check-in ${tickets.stay.checkIn} from ${tickets.stay.checkInTime} · check-out ${tickets.stay.checkOut} by ${tickets.stay.checkOutTime}`,
+    },
+  });
+  return blocks;
 }
 
 function buildDestinationBlocks(destinations: DestinationCardView[]): KnownBlock[] {

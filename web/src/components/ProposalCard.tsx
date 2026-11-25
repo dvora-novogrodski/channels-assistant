@@ -5,6 +5,7 @@ import { SAVED_PAYMENT_METHODS, type ProposalStatus, type ProposalView } from '@
 import type { ProposalDecision } from '../chatApi';
 import { formatTripDate, formatUsd } from '../formatTrip.util';
 import classes from './ProposalCard.module.css';
+import { TripTickets } from './TripTickets';
 
 const STATUS_BADGES: Record<ProposalStatus, { label: string; color: string }> = {
   proposed: { label: 'Ready to book', color: 'clay' },
@@ -132,6 +133,8 @@ export function ProposalCard({ proposal, onDecision }: ProposalCardProps) {
             Booking reference <strong>{proposal.bookingRef}</strong>
           </Text>
         )}
+
+        {proposal.status === 'confirmed' && <TripTickets proposal={proposal} />}
 
         {errorText && (
           <Alert color="red" variant="light" p="xs" mt="sm">

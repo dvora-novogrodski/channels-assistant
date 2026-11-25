@@ -1,6 +1,7 @@
 import { randomInt } from 'node:crypto';
 import { SAVED_PAYMENT_METHODS, type ResolveProposalRequest } from '@app/shared';
 import type { Proposal, User } from './store.js';
+import { issueTickets } from './tickets.js';
 
 export type ProposalDecision = ResolveProposalRequest['decision'];
 
@@ -45,6 +46,7 @@ export function applyDecision(
   if (paymentMethod) proposal.paymentMethod = paymentMethod.label;
   proposal.status = 'confirmed';
   proposal.bookingRef = createBookingRef();
+  proposal.tickets = issueTickets(proposal);
   user.bookings.push({ ...proposal, bookingRef: proposal.bookingRef, confirmedAt: now.toISOString() });
   return { changed: true, text: describeOutcome(proposal) };
 }
@@ -55,10 +57,14 @@ function describeOutcome(proposal: Proposal): string {
   }
   const travelers = `${proposal.travelers} traveler${proposal.travelers === 1 ? '' : 's'}`;
   const total = proposal.estimatedTotalUsd.toLocaleString('en-US');
-  const contents = proposal.flight ? `${proposal.flight.airline} flights + ${proposal.stay.name}` : proposal.stay.name;
+  const flightCode = proposal.tickets?.flight
+    ? ` Flight booking code ${proposal.tickets.flight.recordLocator} (${proposal.flight?.airline}).`
+    : '';
+  const hotelCode = proposal.tickets ? ` Hotel confirmation ${proposal.tickets.stay.confirmationCode}.` : '';
   return (
     `✅ Trip booked: ${proposal.destinationName}, ${proposal.country} · ${proposal.startDate} → ${proposal.endDate} · ` +
-    `${travelers} · ${contents}. Paid $${total} with ${proposal.paymentMethod}. Reference ${proposal.bookingRef}.`
+    `${travelers}. Paid $${total} with ${proposal.paymentMethod}. Reference ${proposal.bookingRef}.` +
+    `${flightCode}${hotelCode} Your e-tickets are on the booking card.`
   );
 }
 

@@ -172,6 +172,7 @@ describe('Slack handlers', () => {
     const updatedCard = chat.lastUpdateOf(card?.ts ?? '');
     expect(buttonValue(updatedCard?.blocks, (actionId) => actionId === CONFIRM_ACTION_ID)).toBeUndefined();
     expect(JSON.stringify(updatedCard?.blocks)).toContain('Booked');
+    expect(JSON.stringify(updatedCard?.blocks)).toContain('Hotel voucher');
     const outcomes = chat.sent.filter((message) => message.text.includes('Trip booked: Lisbon'));
     expect(outcomes).toHaveLength(1);
     expect(store.getUser('slack:U1').bookings).toHaveLength(1);

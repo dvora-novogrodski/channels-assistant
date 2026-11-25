@@ -25,6 +25,37 @@ export interface ProposalFlight {
   compareUrl: string;
 }
 
+export interface FlightLeg {
+  date: string; // YYYY-MM-DD
+  from: string;
+  to: string;
+  departs: string; // HH:MM
+  arrives: string; // HH:MM
+  arrivesNextDay: boolean;
+}
+
+export interface FlightTickets {
+  recordLocator: string; // airline booking code, e.g. "K7QM2X"
+  ticketNumbers: string[]; // one e-ticket per traveler
+  seats: string[];
+  outbound: FlightLeg;
+  inbound: FlightLeg;
+}
+
+export interface StayVoucher {
+  confirmationCode: string;
+  checkIn: string; // YYYY-MM-DD
+  checkOut: string;
+  checkInTime: string;
+  checkOutTime: string;
+}
+
+/** Issued when a trip is confirmed. */
+export interface TripTickets {
+  flight?: FlightTickets;
+  stay: StayVoucher;
+}
+
 /** What a UI needs to render a trip package card. All money is computed in code, never by the LLM. */
 export interface ProposalView {
   id: string;
@@ -43,6 +74,7 @@ export interface ProposalView {
   paymentMethod: string; // demo card on file, e.g. "Visa •••• 4242 (demo)"
   status: ProposalStatus;
   bookingRef?: string; // e.g. "TRV-4821", only when confirmed
+  tickets?: TripTickets; // only when confirmed
 }
 
 export interface DestinationCardView {

@@ -9,7 +9,7 @@ const SUGGESTED_PROMPTS = [
 ];
 
 const CAPABILITIES = [
-  { icon: IconSearch, label: '32 destinations' },
+  { icon: IconSearch, label: 'Curated destinations' },
   { icon: IconPlane, label: 'Flights with price comparison' },
   { icon: IconBed, label: 'Hand-picked stays' },
   { icon: IconCreditCard, label: 'Book with your saved card' },
