@@ -16,7 +16,8 @@ export function downloadTripCalendar(proposal: ProposalView | BookingView): void
   link.href = url;
   link.download = `trip-${proposal.destinationName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.ics`;
   link.click();
-  URL.revokeObjectURL(url);
+  // Some browsers start the download after this handler returns, so the URL must outlive the click.
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 export function buildTripCalendar(proposal: ProposalView | BookingView): string {

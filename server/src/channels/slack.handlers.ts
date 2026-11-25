@@ -1,21 +1,23 @@
 import type { KnownBlock } from '@slack/types';
-import type { ProposalView } from '@app/shared';
+import type { ChatMessage, ProposalView } from '@app/shared';
 import type { TripAssistant } from '../core/assistant.js';
 import { NotFoundError } from '../core/errors.js';
 import type { ProposalDecision } from '../core/proposals.js';
 import type { ConversationStore } from '../core/store.js';
 import {
+  BOOKING_STEPS,
+  buildBookingProgressContent,
   buildNewTripContent,
-  buildProposalBlocks,
   buildReplyContent,
   parseActionValue,
   parseQuickReplyValue,
   toSlackMrkdwn,
-  type ProposalActionValue,
-  type SlackMessageContent,
 } from './slack.blocks.js';
 
 export const THINKING_TEXT = '_Planning your trip…_';
+export const DELIVERY_FAILED_TEXT =
+  ":warning: I couldn't show my last answer here. Please send your message again, or ask for a shorter answer.";
+export const BOOKING_STEP_MS = 900;
 const MAX_TRACKED_CARDS = 500;
 const NEW_TRIP_PATTERN = /^(new trip|start over|new chat)[.!]*$/i;
 
@@ -52,8 +54,8 @@ export interface SlackActionClick {
 interface ProposalCardRef {
   channel: string;
   ts: string;
-  replyContent: SlackMessageContent;
-  actionValue: ProposalActionValue;
+  conversationId: string;
+  reply: ChatMessage;
   status: ProposalView['status'];
 }
 
@@ -61,6 +63,7 @@ interface SlackHandlerDependencies {
   store: ConversationStore;
   assistant: TripAssistant;
   log?: Pick<Console, 'warn' | 'error'>;
+  pause?: (milliseconds: number) => Promise<void>;
 }
 
 export function toSlackOwnerId(slackUserId: string): string {
@@ -71,17 +74,21 @@ export function toSlackConversationId(channel: string, sessionTs: string): strin
   return `slack:${channel}:${sessionTs}`;
 }
 
+const defaultPause = (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+
 // The whole DM is one flat chat. A "session" (one trip conversation) lasts until the user asks for a new trip;
 // it starts at the timestamp of its first message, which makes every session id unique.
-export function createSlackHandlers({ store, assistant, log = console }: SlackHandlerDependencies) {
+export function createSlackHandlers({ store, assistant, log = console, pause = defaultPause }: SlackHandlerDependencies) {
   const proposalCards = new Map<string, ProposalCardRef>();
   const currentSessions = new Map<string, string>();
 
-  async function deliver(action: string, send: () => Promise<unknown>): Promise<void> {
+  async function deliver(action: string, send: () => Promise<unknown>): Promise<boolean> {
     try {
       await send();
+      return true;
     } catch (error) {
       log.error(`Slack delivery failed (${action})`, error);
+      return false;
     }
   }
 
@@ -96,17 +103,18 @@ export function createSlackHandlers({ store, assistant, log = console }: SlackHa
     const card = proposalCards.get(proposal.id);
     if (!card) return;
 
-    const [replySection] = card.replyContent.blocks;
-    const proposalBlocks = buildProposalBlocks(proposal, card.actionValue);
     card.status = proposal.status;
-    await deliver('update proposal card', () =>
-      chat.update({
-        channel: card.channel,
-        ts: card.ts,
-        text: card.replyContent.text,
-        blocks: replySection ? [replySection, ...proposalBlocks] : proposalBlocks,
-      }),
-    );
+    card.reply = { ...card.reply, proposal };
+    const content = buildReplyContent(card.reply, card.conversationId, { showSessionHint: false });
+    await deliver('update proposal card', () => chat.update({ channel: card.channel, ts: card.ts, ...content }));
+  }
+
+  async function showBookingProgress(chat: SlackChat, card: ProposalCardRef): Promise<void> {
+    for (const [index] of BOOKING_STEPS.entries()) {
+      const content = buildBookingProgressContent(card.reply, index);
+      await deliver('update booking progress', () => chat.update({ channel: card.channel, ts: card.ts, ...content }));
+      await pause(BOOKING_STEP_MS);
+    }
   }
 
   function rememberProposalCard(proposalId: string, card: ProposalCardRef): void {
@@ -136,25 +144,36 @@ export function createSlackHandlers({ store, assistant, log = console }: SlackHa
     const content = buildReplyContent(reply, conversationId, { showSessionHint: isNew });
 
     let replyTs = placeholderTs;
-    if (placeholderTs) {
-      const placeholder = placeholderTs;
-      await deliver('update reply', () => chat.update({ channel, ts: placeholder, ...content }));
-    } else {
-      await deliver('post reply', async () => {
-        replyTs = (await chat.postMessage({ channel, ...content })).ts;
-      });
-    }
+    const delivered = placeholderTs
+      ? await deliver('update reply', () => chat.update({ channel, ts: placeholderTs ?? '', ...content }))
+      : await deliver('post reply', async () => {
+          replyTs = (await chat.postMessage({ channel, ...content })).ts;
+        });
 
+    if (!delivered) {
+      await notifyDeliveryFailure(chat, channel, placeholderTs);
+      return;
+    }
     if (reply.proposal && replyTs) {
       rememberProposalCard(reply.proposal.id, {
         channel,
         ts: replyTs,
-        replyContent: content,
-        actionValue: { conversationId, proposalId: reply.proposal.id },
+        conversationId,
+        reply,
         status: reply.proposal.status,
       });
     }
     if (updatedProposal) await refreshProposalCard(chat, updatedProposal);
+  }
+
+  // A rejected rich message (e.g. invalid blocks) must not leave the user staring at the placeholder.
+  async function notifyDeliveryFailure(chat: SlackChat, channel: string, placeholderTs: string | undefined) {
+    const shown = placeholderTs
+      ? await deliver('replace placeholder with failure notice', () =>
+          chat.update({ channel, ts: placeholderTs, text: DELIVERY_FAILED_TEXT, blocks: [] }),
+        )
+      : false;
+    if (!shown) await deliver('post failure notice', () => chat.postMessage({ channel, text: DELIVERY_FAILED_TEXT }));
   }
 
   async function handleMessage(message: IncomingSlackMessage, chat: SlackChat): Promise<void> {
@@ -210,8 +229,9 @@ export function createSlackHandlers({ store, assistant, log = console }: SlackHa
     }
 
     // Slack can deliver the same click twice; only announce a decision that actually changed the proposal.
-    const statusBefore = proposalCards.get(proposalId)?.status;
-    const changed = statusBefore !== result.proposal.status;
+    const card = proposalCards.get(proposalId);
+    const changed = card?.status !== result.proposal.status;
+    if (changed && card && result.proposal.status === 'confirmed') await showBookingProgress(chat, card);
     if (changed) await refreshProposalCard(chat, result.proposal);
     if (result.reply.error || changed) await postToChat(result.reply.text);
   }

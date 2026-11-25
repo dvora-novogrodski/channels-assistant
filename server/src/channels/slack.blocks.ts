@@ -9,6 +9,7 @@ export const QUICK_REPLY_ACTION_PREFIX = 'quick_reply_';
 
 export const SESSION_HINT = 'Tip: everything stays in this chat. Type *new trip* or press *New trip* to start fresh.';
 const MAX_DESTINATION_CARDS = 5;
+const MAX_SECTION_TEXT = 2900;
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const STATUS_LINES: Record<ProposalStatus, string> = {
@@ -49,7 +50,7 @@ export function buildReplyContent(
   options: { showSessionHint: boolean },
 ): SlackMessageContent {
   const text = reply.error ? `:warning: ${reply.text}` : toSlackMrkdwn(reply.text);
-  const blocks: KnownBlock[] = [{ type: 'section', text: { type: 'mrkdwn', text } }];
+  const blocks: KnownBlock[] = buildTextSections(text);
 
   if (reply.destinations?.length) blocks.push(...buildDestinationBlocks(reply.destinations));
   if (reply.proposal) blocks.push(...buildProposalBlocks(reply.proposal, { conversationId, proposalId: reply.proposal.id }));
@@ -57,6 +58,45 @@ export function buildReplyContent(
   if (options.showSessionHint) blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: SESSION_HINT }] });
 
   return { text: reply.proposal ? `${text}\n\n${describeProposal(reply.proposal)}` : text, blocks };
+}
+
+export const BOOKING_STEPS = ['Holding your seats', 'Confirming your hotel', 'Processing payment', 'Issuing your tickets'];
+
+export function buildBookingProgressContent(reply: ChatMessage, activeStep: number): SlackMessageContent {
+  const steps = BOOKING_STEPS.map((label, index) => {
+    if (index < activeStep) return `:white_check_mark: ${label}`;
+    if (index === activeStep) return `:hourglass_flowing_sand: *${label}…*`;
+    return `:white_small_square: ${label}`;
+  });
+  return {
+    text: 'Booking your trip…',
+    blocks: [
+      ...buildTextSections(toSlackMrkdwn(reply.text)),
+      { type: 'divider' },
+      { type: 'section', text: { type: 'mrkdwn', text: `*Booking your trip*\n${steps.join('\n')}` } },
+    ],
+  };
+}
+
+// Slack rejects a section whose text is longer than 3000 characters, so long replies are split by paragraph.
+export function buildTextSections(text: string): KnownBlock[] {
+  const chunks: string[] = [];
+  let current = '';
+  for (const paragraph of text.split('\n\n')) {
+    const candidate = current ? `${current}\n\n${paragraph}` : paragraph;
+    if (candidate.length <= MAX_SECTION_TEXT) {
+      current = candidate;
+      continue;
+    }
+    if (current) chunks.push(current);
+    current = paragraph;
+    while (current.length > MAX_SECTION_TEXT) {
+      chunks.push(current.slice(0, MAX_SECTION_TEXT));
+      current = current.slice(MAX_SECTION_TEXT);
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks.map((chunk) => ({ type: 'section', text: { type: 'mrkdwn', text: chunk } }));
 }
 
 export function buildNewTripContent(): SlackMessageContent {
@@ -263,11 +303,16 @@ function describeStatus(proposal: ProposalView): string {
 
 function describeProposal(proposal: ProposalView): string {
   const flight = proposal.flight ? ` with ${proposal.flight.airline} flights` : '';
-  return (
-    `Proposed trip: ${proposal.destinationName}, ${proposal.country}, ${proposal.startDate} → ${proposal.endDate}, ` +
-    `${pluralTravelers(proposal.travelers)}, ${proposal.stay.name}${flight}, total ${usd(proposal.estimatedTotalUsd)}. ` +
-    'Reply "confirm" or "cancel".'
-  );
+  const summary =
+    `${proposal.destinationName}, ${proposal.country}, ${proposal.startDate} → ${proposal.endDate}, ` +
+    `${pluralTravelers(proposal.travelers)}, ${proposal.stay.name}${flight}, total ${usd(proposal.estimatedTotalUsd)}.`;
+  const statusText: Record<ProposalStatus, string> = {
+    proposed: `Proposed trip: ${summary} Reply "confirm" or "cancel".`,
+    confirmed: `Booked trip: ${summary} Reference ${proposal.bookingRef ?? ''}.`,
+    cancelled: `Cancelled trip: ${summary}`,
+    superseded: `Replaced trip proposal: ${summary}`,
+  };
+  return statusText[proposal.status];
 }
 
 function formatMonths(months: number[]): string {

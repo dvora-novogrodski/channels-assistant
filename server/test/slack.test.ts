@@ -9,6 +9,7 @@ import {
   toSlackMrkdwn,
 } from '../src/channels/slack.blocks.js';
 import {
+  DELIVERY_FAILED_TEXT,
   THINKING_TEXT,
   createSlackHandlers,
   type IncomingSlackMessage,
@@ -84,7 +85,7 @@ describe('Slack handlers', () => {
     llm = new ScriptedLlm();
     chat = new FakeSlackChat();
     const assistant = new TripAssistant({ store, llm, now: () => new Date('2027-01-10T12:00:00Z') });
-    handlers = createSlackHandlers({ store, assistant, log: SILENT_LOG });
+    handlers = createSlackHandlers({ store, assistant, log: SILENT_LOG, pause: () => Promise.resolve() });
   });
 
   it('replies in the DM itself by replacing a placeholder, with a hint and a New trip button', async () => {
@@ -295,5 +296,59 @@ describe('Slack config', () => {
     const config = loadConfig({ GEMINI_API_KEY: 'k', SLACK_BOT_TOKEN: 'xoxe.xoxb-1-abc', SLACK_APP_TOKEN: 'xoxe.xapp-1-abc' });
 
     expect(config).toMatchObject({ SLACK_BOT_TOKEN: 'xoxe.xoxb-1-abc', SLACK_APP_TOKEN: 'xoxe.xapp-1-abc' });
+  });
+});
+
+describe('Slack reliability fixes', () => {
+  function setup(...replies: Parameters<ScriptedLlm['then']>) {
+    const store = new InMemoryConversationStore();
+    const llm = new ScriptedLlm(...replies);
+    const assistant = new TripAssistant({ store, llm, now: () => new Date('2027-01-10T12:00:00Z') });
+    const handlers = createSlackHandlers({ store, assistant, log: SILENT_LOG, pause: () => Promise.resolve() });
+    return { store, handlers };
+  }
+
+  it('splits long replies into sections under the Slack limit', () => {
+    const paragraph = 'x'.repeat(1200);
+    const { blocks } = buildReplyContent(
+      { id: 'm', role: 'assistant', text: [paragraph, paragraph, paragraph, paragraph].join('\n\n'), createdAt: '' },
+      'c',
+      { showSessionHint: false },
+    );
+    const sections = blocks.filter((block) => block.type === 'section');
+
+    expect(sections.length).toBeGreaterThan(1);
+    for (const section of sections) {
+      expect(section.type === 'section' ? (section.text?.text.length ?? 0) : 0).toBeLessThanOrEqual(2900);
+    }
+  });
+
+  it('replaces the placeholder with a notice when the reply cannot be delivered', async () => {
+    const { handlers } = setup(textReply('Hello'));
+    const chat = new FakeSlackChat();
+    let updates = 0;
+    const flakyChat: SlackChat = {
+      postMessage: (message) => chat.postMessage(message),
+      update: (message) => (updates++ === 0 ? Promise.reject(new Error('invalid_blocks')) : chat.update(message)),
+    };
+
+    await handlers.handleMessage(dm('Hi'), flakyChat);
+
+    expect(chat.sent.at(-1)).toMatchObject({ kind: 'update', text: DELIVERY_FAILED_TEXT });
+  });
+
+  it('shows booking progress before the booked card and keeps the New trip button', async () => {
+    const { handlers } = setup(toolReply({ name: 'propose_trip', args: LISBON_BOOKING }), textReply('Ready.'));
+    const chat = new FakeSlackChat();
+    await handlers.handleMessage(dm('Book Lisbon'), chat);
+    const card = chat.sent.find((message) => message.kind === 'update');
+    const value = buttonValue(card?.blocks, (actionId) => actionId === CONFIRM_ACTION_ID);
+
+    await handlers.handleButtonClick({ userId: 'U1', channel: CHANNEL, decision: 'confirm', value }, chat);
+
+    const cardUpdates = chat.sent.filter((message) => message.kind === 'update' && message.ts === card?.ts);
+    expect(cardUpdates.filter((message) => message.text === 'Booking your trip…')).toHaveLength(4);
+    expect(buttonValue(cardUpdates.at(-1)?.blocks, (actionId) => actionId === NEW_TRIP_ACTION_ID)).toBeDefined();
+    expect(cardUpdates.at(-1)?.text).not.toContain('Reply "confirm"');
   });
 });

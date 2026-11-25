@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BookingView, ChatMessage, ConversationSummary, ErrorKind, ProposalView } from '@app/shared';
 import { ApiRequestError, chatApi, type ProposalDecision } from './chatApi';
 import { getOrCreateUserId, readActiveConversationId, saveActiveConversationId } from './browserStorage.util';
+import { BOOKING_STEPS, BOOKING_STEP_MS } from './components/BookingProgress';
 
 export type LoadStatus = 'loading' | 'ready' | 'error';
 export type UiErrorKind = ErrorKind | 'network';
@@ -19,6 +20,10 @@ function describeError(error: unknown): string {
 
 function localMessage(role: UiMessage['role'], text: string, error?: UiMessage['error']): UiMessage {
   return { id: `local-${crypto.randomUUID()}`, role, text, createdAt: new Date().toISOString(), error };
+}
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function withProposal(messages: UiMessage[], proposal: ProposalView | undefined): UiMessage[] {
@@ -151,7 +156,12 @@ export function useChat() {
     if (!conversationId) return;
 
     try {
-      const { proposal, reply } = await chatApi.resolveProposal(userId, conversationId, proposalId, decision, paymentMethodId);
+      // A booking shows its progress steps for their full length even when the server answers instantly.
+      const minimumDuration = decision === 'confirm' ? BOOKING_STEPS.length * BOOKING_STEP_MS : 0;
+      const [{ proposal, reply }] = await Promise.all([
+        chatApi.resolveProposal(userId, conversationId, proposalId, decision, paymentMethodId),
+        wait(minimumDuration),
+      ]);
       if (activeConversationRef.current !== conversationId) return;
       setMessages((previous) => withProposal([...previous, reply], proposal));
       void refreshBookings();

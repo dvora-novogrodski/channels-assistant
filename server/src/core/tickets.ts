@@ -4,7 +4,8 @@ import type { Proposal } from './store.js';
 
 const LOCATOR_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SEAT_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
-const RETURN_DEPARTURE_OFFSET_HOURS = 4;
+const RETURN_WINDOW_START_HOUR = 12;
+const RETURN_WINDOW_HOURS = 8;
 const CHECK_IN_TIME = '15:00';
 const CHECK_OUT_TIME = '11:00';
 
@@ -19,7 +20,7 @@ export function issueTickets(proposal: Proposal, random: RandomInt = randomInt):
 
 function issueFlightTickets(proposal: Proposal, flight: ProposalFlight, random: RandomInt): FlightTickets {
   const outbound = buildLeg(proposal.startDate, flight.originAirport, flight.destinationAirport, flight.departTime, flight.durationHours);
-  const returnDeparture = addHours(flight.departTime, RETURN_DEPARTURE_OFFSET_HOURS).time;
+  const returnDeparture = returnDepartureTime(flight.departTime);
   const inbound = buildLeg(proposal.endDate, flight.destinationAirport, flight.originAirport, returnDeparture, flight.durationHours);
 
   return {
@@ -39,6 +40,13 @@ function issueStayVoucher(proposal: Proposal, random: RandomInt): StayVoucher {
     checkInTime: CHECK_IN_TIME,
     checkOutTime: CHECK_OUT_TIME,
   };
+}
+
+// The return flight leaves in the afternoon of check-out day, after the hotel's check-out time.
+function returnDepartureTime(outboundDeparture: string): string {
+  const [hour = 0, minute = 0] = outboundDeparture.split(':').map(Number);
+  const returnHour = RETURN_WINDOW_START_HOUR + (hour % RETURN_WINDOW_HOURS);
+  return `${String(returnHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
 function buildLeg(date: string, from: string, to: string, departs: string, durationHours: number): FlightLeg {

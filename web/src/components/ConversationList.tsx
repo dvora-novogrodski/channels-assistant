@@ -36,7 +36,7 @@ export function ConversationList({
             <Stack gap="xs">
               <span className={classes.sectionLabel}>My trips</span>
               {bookings.map((booking) => (
-                <TripItem key={booking.bookingRef} booking={booking} />
+                <TripItem key={booking.id} booking={booking} />
               ))}
             </Stack>
           )}

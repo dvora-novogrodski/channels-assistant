@@ -128,7 +128,8 @@ export class TripAssistant {
     conversation.llmHistory = working;
     const { proposal, superseded } = applyEffects(conversation, context.user, effects);
     this.store.appendMessage(conversation, this.message('user', text));
-    const { text: replyText, quickReplies } = extractQuickReplies(finalReply.text ?? defaultReplyText(proposal));
+    const { text: extractedText, quickReplies } = extractQuickReplies(finalReply.text ?? '');
+    const replyText = extractedText || defaultReplyText(proposal);
     const destinations = proposal ? undefined : findSuggestedDestinations(working.slice(turnStart));
     const reply = { ...this.message('assistant', replyText, proposal?.id), quickReplies, destinations };
     this.store.appendMessage(conversation, reply);

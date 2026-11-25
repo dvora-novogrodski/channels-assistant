@@ -1,5 +1,6 @@
 import { Router, type Response } from 'express';
 import { z } from 'zod';
+import { SAVED_PAYMENT_METHODS } from '@app/shared';
 import type {
   BookingView,
   ChatMessage,
@@ -14,6 +15,7 @@ import type { TripAssistant } from '../core/assistant.js';
 import type { ConversationStore } from '../core/store.js';
 
 export const MAX_MESSAGE_LENGTH = 2000;
+const SAVED_PAYMENT_METHOD_IDS = SAVED_PAYMENT_METHODS.map(({ id }) => id);
 
 const UserQuerySchema = z.object({ userId: z.uuid() });
 
@@ -27,7 +29,7 @@ const SendMessageSchema = z.object({
 const ResolveProposalSchema = z.object({
   userId: z.uuid(),
   decision: z.enum(['confirm', 'cancel']),
-  paymentMethodId: z.string().optional(),
+  paymentMethodId: z.enum(SAVED_PAYMENT_METHOD_IDS).optional(),
 }) satisfies z.ZodType<ResolveProposalRequest>;
 
 const ConversationParamsSchema = z.object({ conversationId: z.string().min(1) });

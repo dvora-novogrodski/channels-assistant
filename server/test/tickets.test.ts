@@ -35,7 +35,15 @@ describe('issueTickets', () => {
       arrives: '02:30',
       arrivesNextDay: true,
     });
-    expect(tickets.flight?.inbound).toMatchObject({ date: '2027-05-17', from: 'LIS', to: 'TLV', departs: '01:30' });
+    expect(tickets.flight?.inbound).toMatchObject({ date: '2027-05-17', from: 'LIS', to: 'TLV', departs: '17:30' });
+  });
+
+  it('schedules every return flight after the hotel check-out time', () => {
+    for (let hour = 0; hour < 24; hour++) {
+      const departTime = `${String(hour).padStart(2, '0')}:15`;
+      const tickets = issueTickets(sampleProposal({ flight: { ...LATE_FLIGHT, departTime } }));
+      expect((tickets.flight?.inbound.departs ?? '') >= tickets.stay.checkOutTime).toBe(true);
+    }
   });
 
   it('always issues a hotel voucher, and no flight tickets for stay-only trips', () => {

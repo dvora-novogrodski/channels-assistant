@@ -5,6 +5,7 @@ import { SAVED_PAYMENT_METHODS, type ProposalStatus, type ProposalView } from '@
 import type { ProposalDecision } from '../chatApi';
 import { formatTripDate, formatUsd } from '../formatTrip.util';
 import classes from './ProposalCard.module.css';
+import { BookingProgress } from './BookingProgress';
 import { TripTickets } from './TripTickets';
 
 const STATUS_BADGES: Record<ProposalStatus, { label: string; color: string }> = {
@@ -122,10 +123,12 @@ export function ProposalCard({ proposal, onDecision }: ProposalCardProps) {
             comboboxProps={{ withinPortal: true }}
           />
         ) : (
-          <Group gap={6} mt="md" wrap="nowrap">
-            <IconCreditCard size={16} stroke={1.6} />
-            <Text fz="sm">Paid with {proposal.paymentMethod}</Text>
-          </Group>
+          proposal.status === 'confirmed' && (
+            <Group gap={6} mt="md" wrap="nowrap">
+              <IconCreditCard size={16} stroke={1.6} />
+              <Text fz="sm">Paid with {proposal.paymentMethod}</Text>
+            </Group>
+          )
         )}
 
         {proposal.bookingRef && (
@@ -142,13 +145,14 @@ export function ProposalCard({ proposal, onDecision }: ProposalCardProps) {
           </Alert>
         )}
 
-        {isActionable && (
+        {isActionable && pendingDecision === 'confirm' && <BookingProgress />}
+
+        {isActionable && pendingDecision !== 'confirm' && (
           <Stack gap={6} mt="md">
             <Button
               fullWidth
               size="md"
               color="clay"
-              loading={pendingDecision === 'confirm'}
               disabled={pendingDecision === 'cancel'}
               onClick={() => decide('confirm')}
             >
@@ -159,7 +163,6 @@ export function ProposalCard({ proposal, onDecision }: ProposalCardProps) {
               variant="subtle"
               color="gray"
               loading={pendingDecision === 'cancel'}
-              disabled={pendingDecision === 'confirm'}
               onClick={() => decide('cancel')}
             >
               Cancel
