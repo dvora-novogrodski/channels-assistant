@@ -1,10 +1,11 @@
-import { AppShell, Box, Burger, Group, Text, ThemeIcon, Title } from '@mantine/core';
+import { AppShell, Burger, Group, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconPlaneTilt } from '@tabler/icons-react';
 import { ChatView } from './components/ChatView';
 import { ColorSchemeToggle } from './components/ColorSchemeToggle';
 import { ConversationList } from './components/ConversationList';
 import { useChat } from './useChat';
+import classes from './App.module.css';
 
 export function App() {
   const chat = useChat();
@@ -22,27 +23,29 @@ export function App() {
 
   return (
     <AppShell
-      header={{ height: 56 }}
-      navbar={{ width: 280, breakpoint: 'sm', collapsed: { mobile: !isNavbarOpen } }}
+      header={{ height: 60 }}
+      navbar={{ width: 272, breakpoint: 'sm', collapsed: { mobile: !isNavbarOpen } }}
       padding={0}
     >
-      <AppShell.Header>
-        <Group h="100%" px="md" gap="sm" wrap="nowrap">
-          <Burger opened={isNavbarOpen} onClick={toggleNavbar} hiddenFrom="sm" size="sm" aria-label="Toggle chats" />
-          <ThemeIcon variant="light" radius="md">
-            <IconPlaneTilt size={18} />
-          </ThemeIcon>
-          <Title order={4}>Travel Assistant</Title>
-          <Text size="xs" c="dimmed" visibleFrom="sm">
-            Suggestions from sample data · bookings are simulated
-          </Text>
-          <Box ml="auto">
-            <ColorSchemeToggle />
-          </Box>
+      <AppShell.Header className={classes.header}>
+        <Group h="100%" px="md" justify="space-between" wrap="nowrap">
+          <Group gap="sm" wrap="nowrap">
+            <Burger opened={isNavbarOpen} onClick={toggleNavbar} hiddenFrom="sm" size="sm" aria-label="Toggle chats" />
+            <div className={classes.brandMark}>
+              <IconPlaneTilt size={17} stroke={1.6} />
+            </div>
+            <Text fw={650} fz="md">
+              Travel Assistant
+            </Text>
+            <Text fz="xs" c="dimmed" visibleFrom="sm">
+              Destinations, demo flights and stays
+            </Text>
+          </Group>
+          <ColorSchemeToggle />
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar p="sm">
+      <AppShell.Navbar p="sm" className={classes.navbar}>
         <ConversationList
           conversations={chat.conversations}
           status={chat.conversationsStatus}
@@ -53,7 +56,7 @@ export function App() {
         />
       </AppShell.Navbar>
 
-      <AppShell.Main style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
+      <AppShell.Main className={classes.main}>
         <ChatView
           messages={chat.messages}
           status={chat.messagesStatus}

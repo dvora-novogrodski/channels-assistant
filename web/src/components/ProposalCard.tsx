@@ -1,15 +1,16 @@
-import { useState } from 'react';
-import { Alert, Badge, Button, Card, Group, SimpleGrid, Stack, Text } from '@mantine/core';
-import { IconCheck, IconMapPin, IconX } from '@tabler/icons-react';
+import { useState, type ReactNode } from 'react';
+import { Alert, Anchor, Badge, Button, Group, Stack, Text } from '@mantine/core';
+import { IconBed, IconCreditCard, IconExternalLink, IconPlane } from '@tabler/icons-react';
 import type { ProposalStatus, ProposalView } from '@app/shared';
 import type { ProposalDecision } from '../chatApi';
 import { formatTripDate, formatUsd } from '../formatTrip.util';
+import classes from './ProposalCard.module.css';
 
 const STATUS_BADGES: Record<ProposalStatus, { label: string; color: string }> = {
-  proposed: { label: 'Proposal · not booked yet', color: 'yellow' },
-  confirmed: { label: 'Booked', color: 'green' },
+  proposed: { label: 'Ready to book', color: 'blue' },
+  confirmed: { label: 'Booked', color: 'teal' },
   cancelled: { label: 'Cancelled', color: 'gray' },
-  superseded: { label: 'Replaced by a newer proposal', color: 'gray' },
+  superseded: { label: 'Replaced', color: 'gray' },
 };
 
 interface ProposalCardProps {
@@ -38,84 +39,141 @@ export function ProposalCard({ proposal, onDecision }: ProposalCardProps) {
   }
 
   return (
-    <Card withBorder radius="lg" padding="md" opacity={isInactive ? 0.6 : 1} aria-label="Trip proposal">
-      <Stack gap="sm">
-        <Group justify="space-between" align="flex-start" wrap="nowrap">
-          <Group gap="xs" wrap="nowrap">
-            <IconMapPin size={18} />
-            <div>
-              <Text fw={600}>
-                {proposal.destinationName}, {proposal.country}
-              </Text>
-              <Text size="xs" c="dimmed">
-                Stay only · flights not included
-              </Text>
-            </div>
-          </Group>
-          <Badge color={badge.color} variant="light" style={{ flexShrink: 0 }}>
-            {badge.label}
-          </Badge>
+    <div className={`${classes.card} ${isInactive ? classes.inactive : ''}`} aria-label="Trip proposal">
+      <Group className={classes.header} justify="space-between" align="flex-start" wrap="nowrap">
+        <div>
+          <Text fw={650} fz="lg">
+            {proposal.destinationName}, {proposal.country}
+          </Text>
+          <Text fz="sm" c="dimmed">
+            {formatTripDate(proposal.startDate)} – {formatTripDate(proposal.endDate)} · {proposal.nights} nights ·{' '}
+            {proposal.travelers} {proposal.travelers === 1 ? 'traveler' : 'travelers'}
+          </Text>
+        </div>
+        <Badge color={badge.color} variant="light" radius="sm" style={{ flexShrink: 0 }}>
+          {badge.label}
+        </Badge>
+      </Group>
+
+      <Stack className={classes.section} gap="md">
+        <FlightLine proposal={proposal} />
+        <LineItem
+          icon={<IconBed size={18} stroke={1.6} />}
+          title={`${proposal.stay.name} · ★ ${proposal.stay.rating}`}
+          detail={`${formatUsd(proposal.stay.nightlyRateUsd)} / night × ${proposal.nights} nights × ${proposal.stay.rooms} ${
+            proposal.stay.rooms === 1 ? 'room' : 'rooms'
+          }`}
+          amount={proposal.costs.stayUsd}
+        />
+      </Stack>
+
+      <div className={classes.footer}>
+        <Group justify="space-between" align="baseline">
+          <Text fw={600}>Total</Text>
+          <Text fw={700} fz="xl">
+            {formatUsd(proposal.estimatedTotalUsd)}
+          </Text>
+        </Group>
+        <Text fz="xs" c="dimmed" mt={2}>
+          Plus about {formatUsd(proposal.dailyBudgetUsd)} per person per day for food and activities (not charged).
+        </Text>
+
+        <Group gap={6} mt="md" wrap="nowrap">
+          <IconCreditCard size={16} stroke={1.6} />
+          <Text fz="sm">{proposal.paymentMethod}</Text>
         </Group>
 
-        <SimpleGrid cols={2} spacing="xs" verticalSpacing={4}>
-          <Detail label="Dates" value={`${formatTripDate(proposal.startDate)} → ${formatTripDate(proposal.endDate)}`} />
-          <Detail label="Nights" value={String(proposal.nights)} />
-          <Detail label="Travelers" value={String(proposal.travelers)} />
-          <Detail label="Estimated total" value={`~${formatUsd(proposal.estimatedTotalUsd)}`} />
-        </SimpleGrid>
-
         {proposal.bookingRef && (
-          <Text size="sm" c="green">
-            Reference <strong>{proposal.bookingRef}</strong> · simulated stay booking, no payment taken
+          <Text fz="sm" mt="xs" c="teal">
+            Booking reference <strong>{proposal.bookingRef}</strong> · demo booking, no real payment
           </Text>
         )}
 
         {errorText && (
-          <Alert color="red" variant="light" p="xs">
+          <Alert color="red" variant="light" p="xs" mt="sm">
             {errorText}
           </Alert>
         )}
 
         {isActionable && (
-          <Stack gap={6}>
-            <Group gap="xs">
-              <Button
-                leftSection={<IconCheck size={16} />}
-                loading={pendingDecision === 'confirm'}
-                disabled={pendingDecision === 'cancel'}
-                onClick={() => decide('confirm')}
-              >
-                Confirm booking
-              </Button>
-              <Button
-                variant="default"
-                leftSection={<IconX size={16} />}
-                loading={pendingDecision === 'cancel'}
-                disabled={pendingDecision === 'confirm'}
-                onClick={() => decide('cancel')}
-              >
-                Cancel
-              </Button>
-            </Group>
-            <Text size="xs" c="dimmed">
-              You can also reply "confirm" or "cancel".
+          <Stack gap={6} mt="md">
+            <Button
+              fullWidth
+              size="md"
+              loading={pendingDecision === 'confirm'}
+              disabled={pendingDecision === 'cancel'}
+              onClick={() => decide('confirm')}
+            >
+              Confirm & pay {formatUsd(proposal.estimatedTotalUsd)}
+            </Button>
+            <Button
+              fullWidth
+              variant="subtle"
+              color="gray"
+              loading={pendingDecision === 'cancel'}
+              disabled={pendingDecision === 'confirm'}
+              onClick={() => decide('cancel')}
+            >
+              Cancel
+            </Button>
+            <Text fz="xs" c="dimmed" ta="center">
+              Nothing is booked until you confirm. You can also reply “confirm” or ask for changes.
             </Text>
           </Stack>
         )}
-      </Stack>
-    </Card>
+      </div>
+    </div>
   );
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
+function FlightLine({ proposal }: { proposal: ProposalView }) {
+  const { flight } = proposal;
+  if (!flight) {
+    return (
+      <LineItem
+        icon={<IconPlane size={18} stroke={1.6} />}
+        title="No flight included"
+        detail="Ask me to add a flight from your home airport."
+      />
+    );
+  }
+
+  const stops = flight.stops === 0 ? 'Direct' : `${flight.stops} stop`;
   return (
-    <div>
-      <Text size="xs" c="dimmed">
-        {label}
-      </Text>
-      <Text size="sm" fw={500}>
-        {value}
-      </Text>
-    </div>
+    <LineItem
+      icon={<IconPlane size={18} stroke={1.6} />}
+      title={`${flight.airline} ${flight.flightNumber} · ${flight.originAirport} → ${flight.destinationAirport}`}
+      detail={
+        <>
+          {stops} · {flight.durationHours}h · departs {flight.departTime} · {formatUsd(flight.priceUsdPerTraveler)} ×{' '}
+          {proposal.travelers} · demo flight{' '}
+          <Anchor href={flight.compareUrl} target="_blank" rel="noopener noreferrer" fz="xs" inherit>
+            compare real prices <IconExternalLink size={11} style={{ verticalAlign: 'middle' }} />
+          </Anchor>
+        </>
+      }
+      amount={proposal.costs.flightsUsd}
+    />
+  );
+}
+
+function LineItem({ icon, title, detail, amount }: { icon: ReactNode; title: string; detail: ReactNode; amount?: number }) {
+  return (
+    <Group align="flex-start" gap="sm" wrap="nowrap">
+      <div className={classes.lineIcon}>{icon}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <Text fz="sm" fw={600}>
+          {title}
+        </Text>
+        <Text fz="xs" c="dimmed" mt={2}>
+          {detail}
+        </Text>
+      </div>
+      {amount !== undefined && (
+        <Text fz="sm" fw={600}>
+          {formatUsd(amount)}
+        </Text>
+      )}
+    </Group>
   );
 }

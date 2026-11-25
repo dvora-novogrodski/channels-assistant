@@ -1,0 +1,21 @@
+:root,
+:root[data-mantine-color-scheme='light'] {
+  --app-background: #fafaf9;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f2f1ef;
+  --app-border: #e7e5e4;
+  --app-shadow: 0 1px 2px rgb(28 25 23 / 6%);
+}
+
+:root[data-mantine-color-scheme='dark'] {
+  --app-background: #141414;
+  --app-surface: #1c1c1c;
+  --app-surface-muted: #262626;
+  --app-border: #303030;
+  --app-shadow: 0 1px 2px rgb(0 0 0 / 40%);
+}
+
+body {
+  background: var(--app-background);
+  -webkit-font-smoothing: antialiased;
+}

@@ -10,8 +10,9 @@ export interface DecisionOutcome {
 }
 
 const DECISION_PATTERNS: Record<ProposalDecision, RegExp> = {
-  confirm: /^(confirm|confirmed|yes,? (please )?confirm|book it)[.!]*$/i,
-  cancel: /^(cancel|cancel it|no,? cancel)[.!]*$/i,
+  confirm:
+    /^(yes,? )?(please )?(confirm(ed)?|book)( it| this| the trip| trip| the booking| booking| and pay)?( please)?[.!]*$/i,
+  cancel: /^(no,? )?(please )?cancel( it| this| the trip| trip| the booking| booking)?( please)?[.!]*$/i,
 };
 
 export function parseDecision(text: string): ProposalDecision | undefined {

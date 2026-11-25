@@ -11,11 +11,11 @@ const TODAY = new Date('2027-01-10T12:00:00Z');
 const LISBON_BOOKING = { destinationId: 'lisbon-pt', startDate: '2027-05-12', nights: 5, travelers: 2 };
 
 describe('parseDecision', () => {
-  it.each(['confirm', 'Confirm!', ' yes, confirm ', 'book it'])('reads "%s" as confirm', (text) => {
+  it.each(['confirm', 'Confirm!', ' yes, confirm ', 'book it', 'Confirm trip', 'confirm the booking'])('reads "%s" as confirm', (text) => {
     expect(parseDecision(text)).toBe('confirm');
   });
 
-  it.each(['cancel', 'Cancel it.', 'no, cancel'])('reads "%s" as cancel', (text) => {
+  it.each(['cancel', 'Cancel it.', 'no, cancel', 'Cancel trip'])('reads "%s" as cancel', (text) => {
     expect(parseDecision(text)).toBe('cancel');
   });
 

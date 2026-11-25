@@ -1,5 +1,5 @@
-import { Alert, Button, Group, Paper, Stack, Text, Typography } from '@mantine/core';
-import { IconAlertTriangle, IconClockPause, IconRefresh, IconWifiOff } from '@tabler/icons-react';
+import { Alert, Box, Button, Group, Stack, Text, Typography } from '@mantine/core';
+import { IconAlertTriangle, IconClockPause, IconPlaneTilt, IconRefresh, IconWifiOff } from '@tabler/icons-react';
 import Markdown, { type Components } from 'react-markdown';
 import type { ProposalDecision } from '../chatApi';
 import type { UiErrorKind, UiMessage } from '../useChat';
@@ -7,7 +7,7 @@ import { ProposalCard } from './ProposalCard';
 import classes from './MessageBubble.module.css';
 
 const ERROR_PRESENTATION: Record<UiErrorKind, { title: string; color: string; icon: typeof IconAlertTriangle }> = {
-  rate_limit: { title: 'AI is busy', color: 'yellow', icon: IconClockPause },
+  rate_limit: { title: 'The AI is busy', color: 'yellow', icon: IconClockPause },
   busy: { title: 'Still working', color: 'yellow', icon: IconClockPause },
   unavailable: { title: 'AI service unavailable', color: 'red', icon: IconAlertTriangle },
   blocked: { title: "Can't help with that", color: 'orange', icon: IconAlertTriangle },
@@ -25,31 +25,26 @@ interface MessageBubbleProps {
   onResolveProposal: (proposalId: string, decision: ProposalDecision) => Promise<void>;
 }
 
-export function MessageBubble({ message, onRetry, onResolveProposal }: MessageBubbleProps) {
-  if (message.error) return <ErrorBubble message={message} onRetry={onRetry} />;
+export function AssistantAvatar() {
+  return (
+    <div className={classes.avatar} aria-hidden>
+      <IconPlaneTilt size={15} stroke={1.6} />
+    </div>
+  );
+}
 
-  const isUser = message.role === 'user';
+export function MessageBubble({ message, onRetry, onResolveProposal }: MessageBubbleProps) {
+  if (message.error) return <ErrorMessage message={message} onRetry={onRetry} />;
+  if (message.role === 'user') return <UserMessage text={message.text} />;
+
   const { proposal } = message;
   return (
-    <Group justify={isUser ? 'flex-end' : 'flex-start'} wrap="nowrap">
-      <Stack gap="xs" maw="85%">
-        <Paper
-          px="md"
-          py="xs"
-          radius="lg"
-          bg={isUser ? 'blue.6' : 'var(--mantine-color-default-hover)'}
-          c={isUser ? 'white' : undefined}
-        >
-          {isUser ? (
-            <Text size="sm" className={classes.userText}>
-              {message.text}
-            </Text>
-          ) : (
-            <Typography className={classes.markdown} fz="sm">
-              <Markdown components={MARKDOWN_COMPONENTS}>{message.text}</Markdown>
-            </Typography>
-          )}
-        </Paper>
+    <Group align="flex-start" gap="sm" wrap="nowrap">
+      <AssistantAvatar />
+      <Stack gap="md" style={{ flex: 1, minWidth: 0 }} pt={4}>
+        <Typography className={classes.markdown}>
+          <Markdown components={MARKDOWN_COMPONENTS}>{message.text}</Markdown>
+        </Typography>
         {proposal && (
           <ProposalCard proposal={proposal} onDecision={(decision) => onResolveProposal(proposal.id, decision)} />
         )}
@@ -58,14 +53,27 @@ export function MessageBubble({ message, onRetry, onResolveProposal }: MessageBu
   );
 }
 
-function ErrorBubble({ message, onRetry }: Pick<MessageBubbleProps, 'message' | 'onRetry'>) {
+function UserMessage({ text }: { text: string }) {
+  return (
+    <Group justify="flex-end">
+      <Box className={classes.userBubble} px="md" py={10} maw="78%">
+        <Text fz="sm" className={classes.userText}>
+          {text}
+        </Text>
+      </Box>
+    </Group>
+  );
+}
+
+function ErrorMessage({ message, onRetry }: Pick<MessageBubbleProps, 'message' | 'onRetry'>) {
   const presentation = ERROR_PRESENTATION[message.error?.kind ?? 'internal'];
   const Icon = presentation.icon;
 
   return (
-    <Group justify="flex-start" wrap="nowrap">
+    <Group align="flex-start" gap="sm" wrap="nowrap">
+      <AssistantAvatar />
       <Alert
-        maw="85%"
+        style={{ flex: 1 }}
         radius="lg"
         variant="light"
         color={presentation.color}
@@ -73,16 +81,16 @@ function ErrorBubble({ message, onRetry }: Pick<MessageBubbleProps, 'message' | 
         icon={<Icon size={18} />}
       >
         <Stack gap="xs" align="flex-start">
-          <Text size="sm">{message.text}</Text>
+          <Text fz="sm">{message.text}</Text>
           {message.retry && (
             <Button
               size="xs"
-              variant="light"
+              variant="white"
               color={presentation.color}
               leftSection={<IconRefresh size={14} />}
               onClick={() => onRetry(message.id)}
             >
-              Retry
+              Try again
             </Button>
           )}
         </Stack>

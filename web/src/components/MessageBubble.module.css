@@ -1,3 +1,25 @@
+.userBubble {
+  background: var(--app-surface-muted);
+  border-radius: var(--mantine-radius-lg);
+  border-bottom-right-radius: var(--mantine-radius-xs);
+}
+
+.avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.markdown {
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.65;
+}
+
 .markdown > :first-child {
   margin-top: 0;
 }
@@ -9,7 +31,11 @@
 .markdown p,
 .markdown ul,
 .markdown ol {
-  margin-bottom: var(--mantine-spacing-xs);
+  margin-bottom: var(--mantine-spacing-sm);
+}
+
+.markdown li + li {
+  margin-top: 4px;
 }
 
 .userText {

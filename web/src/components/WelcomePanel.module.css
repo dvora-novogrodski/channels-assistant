@@ -1,0 +1,13 @@
+.prompt {
+  display: block;
+  padding: var(--mantine-spacing-md);
+  border-radius: var(--mantine-radius-lg);
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-shadow);
+  transition: border-color 150ms ease;
+}
+
+.prompt:hover {
+  border-color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}

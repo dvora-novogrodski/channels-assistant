@@ -1,0 +1,22 @@
+.header,
+.navbar {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: var(--app-background);
+}
+
+.brandMark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--mantine-radius-md);
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-muted);
+}
