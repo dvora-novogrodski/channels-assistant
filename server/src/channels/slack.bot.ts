@@ -2,7 +2,7 @@ import { App, LogLevel, type BlockAction, type ButtonAction, type webApi } from 
 import type { TripAssistant } from '../core/assistant.js';
 import type { ProposalDecision } from '../core/proposals.js';
 import type { ConversationStore } from '../core/store.js';
-import { CANCEL_ACTION_ID, CONFIRM_ACTION_ID } from './slack.blocks.js';
+import { CANCEL_ACTION_ID, CONFIRM_ACTION_ID, QUICK_REPLY_ACTION_PREFIX } from './slack.blocks.js';
 import { createSlackHandlers, type SlackChat } from './slack.handlers.js';
 
 interface SlackBotSettings {
@@ -52,6 +52,16 @@ export async function startSlackBot({ botToken, appToken, store, assistant }: Sl
       await handlers.handleButtonClick({ userId: body.user.id, channel, decision, value: action.value }, toSlackChat(client));
     });
   }
+
+  app.action<BlockAction<ButtonAction>>(new RegExp(`^${QUICK_REPLY_ACTION_PREFIX}\\d+$`), async ({ ack, body, action, client }) => {
+    await ack();
+    const channel = body.channel?.id;
+    if (!channel) return;
+    await handlers.handleQuickReply(
+      { userId: body.user.id, channel, actionTs: action.action_ts, value: action.value },
+      toSlackChat(client),
+    );
+  });
 
   app.error(async (error) => {
     console.error('Slack app error', error);

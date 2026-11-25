@@ -8,11 +8,14 @@ import {
   buildProposalBlocks,
   buildReplyContent,
   parseActionValue,
+  parseQuickReplyValue,
+  toSlackMrkdwn,
   type ProposalActionValue,
   type SlackMessageContent,
 } from './slack.blocks.js';
 
-export const THINKING_TEXT = '_Checking destinations…_';
+export const THINKING_TEXT = '_Planning your trip…_';
+const MAX_TRACKED_CARDS = 500;
 
 export interface SlackChat {
   postMessage(message: { channel: string; thread_ts?: string; text: string; blocks?: KnownBlock[] }): Promise<{ ts?: string }>;
@@ -35,6 +38,21 @@ export interface SlackButtonClick {
   channel: string;
   decision: ProposalDecision;
   value?: string;
+}
+
+export interface SlackQuickReplyClick {
+  userId: string;
+  channel: string;
+  actionTs: string;
+  value?: string;
+}
+
+interface ThreadTurn {
+  channel: string;
+  threadTs: string;
+  slackUserId: string;
+  text: string;
+  isNewThread: boolean;
 }
 
 interface ProposalCardRef {
@@ -87,38 +105,40 @@ export function createSlackHandlers({ store, assistant, log = console }: SlackHa
     );
   }
 
-  async function handleMessage(message: IncomingSlackMessage, chat: SlackChat): Promise<void> {
-    const text = message.text?.trim();
-    if (message.subtype || message.botId || !message.user || !text) return;
-    if (message.channelType !== 'im') return;
-    if (!store.markEventSeen(`slack:${message.channel}:${message.ts}`)) return;
+  function rememberProposalCard(proposalId: string, card: ProposalCardRef): void {
+    proposalCards.set(proposalId, card);
+    if (proposalCards.size <= MAX_TRACKED_CARDS) return;
+    const oldest = proposalCards.keys().next().value;
+    if (oldest !== undefined) proposalCards.delete(oldest);
+  }
 
-    const threadTs = message.threadTs ?? message.ts;
-    const ownerId = toSlackOwnerId(message.user);
-    const conversationId = toSlackConversationId(message.channel, threadTs);
+  async function runThreadTurn(turn: ThreadTurn, chat: SlackChat): Promise<void> {
+    const { channel, threadTs, slackUserId, text, isNewThread } = turn;
+    const ownerId = toSlackOwnerId(slackUserId);
+    const conversationId = toSlackConversationId(channel, threadTs);
     store.getOrCreateConversation(ownerId, conversationId);
 
     let placeholderTs: string | undefined;
     await deliver('post thinking placeholder', async () => {
-      placeholderTs = (await chat.postMessage({ channel: message.channel, thread_ts: threadTs, text: THINKING_TEXT })).ts;
+      placeholderTs = (await chat.postMessage({ channel, thread_ts: threadTs, text: THINKING_TEXT })).ts;
     });
 
     const { reply, updatedProposal } = await assistant.handleMessage(ownerId, conversationId, text);
-    const content = buildReplyContent(reply, { conversationId, threadTs }, { showThreadHint: !message.threadTs });
+    const content = buildReplyContent(reply, { conversationId, threadTs }, { showThreadHint: isNewThread });
 
     let replyTs = placeholderTs;
     if (placeholderTs) {
       const ts = placeholderTs;
-      await deliver('update reply', () => chat.update({ channel: message.channel, ts, ...content }));
+      await deliver('update reply', () => chat.update({ channel, ts, ...content }));
     } else {
       await deliver('post reply', async () => {
-        replyTs = (await chat.postMessage({ channel: message.channel, thread_ts: threadTs, ...content })).ts;
+        replyTs = (await chat.postMessage({ channel, thread_ts: threadTs, ...content })).ts;
       });
     }
 
     if (reply.proposal && replyTs) {
-      proposalCards.set(reply.proposal.id, {
-        channel: message.channel,
+      rememberProposalCard(reply.proposal.id, {
+        channel,
         ts: replyTs,
         replyContent: content,
         actionValue: { conversationId, proposalId: reply.proposal.id, threadTs },
@@ -126,6 +146,39 @@ export function createSlackHandlers({ store, assistant, log = console }: SlackHa
       });
     }
     if (updatedProposal) await refreshProposalCard(chat, updatedProposal);
+  }
+
+  async function handleMessage(message: IncomingSlackMessage, chat: SlackChat): Promise<void> {
+    const text = message.text?.trim();
+    if (message.subtype || message.botId || !message.user || !text) return;
+    if (message.channelType !== 'im') return;
+    if (!store.markEventSeen(`slack:${message.channel}:${message.ts}`)) return;
+
+    await runThreadTurn(
+      {
+        channel: message.channel,
+        threadTs: message.threadTs ?? message.ts,
+        slackUserId: message.user,
+        text,
+        isNewThread: !message.threadTs,
+      },
+      chat,
+    );
+  }
+
+  async function handleQuickReply(click: SlackQuickReplyClick, chat: SlackChat): Promise<void> {
+    const quickReply = parseQuickReplyValue(click.value);
+    if (!quickReply) {
+      log.warn('Ignoring Slack quick reply with an invalid value');
+      return;
+    }
+    if (!store.markEventSeen(`slack-quick-reply:${click.actionTs}`)) return;
+
+    const { threadTs, text } = quickReply;
+    await deliver('echo quick reply', () =>
+      chat.postMessage({ channel: click.channel, thread_ts: threadTs, text: `:speech_balloon: _${toSlackMrkdwn(text)}_` }),
+    );
+    await runThreadTurn({ channel: click.channel, threadTs, slackUserId: click.userId, text, isNewThread: false }, chat);
   }
 
   async function handleButtonClick(click: SlackButtonClick, chat: SlackChat): Promise<void> {
@@ -155,5 +208,5 @@ export function createSlackHandlers({ store, assistant, log = console }: SlackHa
     if (result.reply.error || changed) await postInThread(result.reply.text);
   }
 
-  return { handleMessage, handleButtonClick };
+  return { handleMessage, handleButtonClick, handleQuickReply };
 }

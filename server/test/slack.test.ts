@@ -242,3 +242,32 @@ describe('Slack config', () => {
     expect(config).toMatchObject({ SLACK_BOT_TOKEN: 'xoxe.xoxb-1-abc', SLACK_APP_TOKEN: 'xoxe.xapp-1-abc' });
   });
 });
+
+describe('Slack quick replies', () => {
+  it('shows quick replies as buttons and runs a click as the next message in the thread', async () => {
+    const store = new InMemoryConversationStore();
+    const llm = new ScriptedLlm(
+      textReply('Try Lisbon.\nQuick replies: Show cheaper | Tell me more'),
+      textReply('Here are cheaper options.'),
+    );
+    const assistant = new TripAssistant({ store, llm, now: () => new Date('2027-01-10T12:00:00Z') });
+    const handlers = createSlackHandlers({ store, assistant, log: { warn: () => {}, error: () => {} } });
+    const chat = new FakeSlackChat();
+
+    await handlers.handleMessage(dm('Ideas?'), chat);
+    const reply = chat.sent.find((message) => message.kind === 'update');
+    const quickReplyButton = (reply?.blocks ?? [])
+      .flatMap((block) => (block.type === 'actions' ? block.elements : []))
+      .find((element) => element.type === 'button' && element.text.text === 'Show cheaper');
+    expect(reply?.text).toBe('Try Lisbon.');
+    expect(quickReplyButton).toBeDefined();
+
+    const value = quickReplyButton?.type === 'button' ? quickReplyButton.value : undefined;
+    await handlers.handleQuickReply({ userId: 'U1', channel: CHANNEL, actionTs: '1.1', value }, chat);
+    await handlers.handleQuickReply({ userId: 'U1', channel: CHANNEL, actionTs: '1.1', value }, chat);
+
+    expect(llm.requests).toHaveLength(2);
+    expect(llm.requests[1]?.messages.at(-1)).toEqual({ role: 'user', text: 'Show cheaper' });
+    expect(chat.sent.some((message) => message.text.includes('_Show cheaper_'))).toBe(true);
+  });
+});
