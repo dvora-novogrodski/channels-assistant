@@ -108,6 +108,7 @@ Production-style: `npm run build`, then `npm start`. This serves the built web a
 | `npm run smoke:gemini -w server` | One real Gemini tool-call round trip |
 | `npm run smoke:assistant -w server` | A real multi-turn conversation through the assistant |
 
+- **Code walkthrough and decision log:** see [docs/decisions.md](docs/decisions.md) (read-this-first order and the reasoning behind every major choice).
 - **Slack:** see [docs/slack-setup.md](docs/slack-setup.md) (app manifest, tokens, conversation model).
 - **Deployment:** see [docs/deploy.md](docs/deploy.md) (Render Blueprint, keep-awake ping).
 - **Behind HTTPS-inspecting filters** (for example Netspark): local scripts pass `--use-system-ca` so Node trusts the Windows certificate store.
