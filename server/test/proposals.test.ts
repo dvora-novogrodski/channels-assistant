@@ -37,7 +37,7 @@ describe('proposal confirmation', () => {
   beforeEach(async () => {
     store = new InMemoryConversationStore();
     conversation = store.createConversation(ALICE);
-    llm = new ScriptedLlm(toolReply({ name: 'propose_booking', args: LISBON_BOOKING }), textReply('Confirm to book.'));
+    llm = new ScriptedLlm(toolReply({ name: 'propose_trip', args: LISBON_BOOKING }), textReply('Confirm to book.'));
     assistant = new TripAssistant({ store, llm, now: () => TODAY });
 
     const { reply } = await assistant.handleMessage(ALICE, conversation.id, 'Book Lisbon');
@@ -76,7 +76,7 @@ describe('proposal confirmation', () => {
   });
 
   it('refuses to confirm a superseded proposal', async () => {
-    llm.then(toolReply({ name: 'propose_booking', args: { ...LISBON_BOOKING, nights: 3 } }), textReply('Updated.'));
+    llm.then(toolReply({ name: 'propose_trip', args: { ...LISBON_BOOKING, nights: 3 } }), textReply('Updated.'));
     await assistant.handleMessage(ALICE, conversation.id, 'Make it 3 nights');
 
     const { proposal, reply } = assistant.resolveProposal(ALICE, conversation.id, proposalId, 'confirm');
@@ -98,7 +98,7 @@ describe('proposal confirmation', () => {
 
     expect(llm.requests).toHaveLength(requestsBefore);
     expect(updatedProposal).toMatchObject({ id: proposalId, status: 'confirmed' });
-    expect(reply.text).toContain('Stay booked: Lisbon');
+    expect(reply.text).toContain('Trip booked: Lisbon');
     expect(store.listMessages(ALICE, conversation.id).map(({ role, text }) => `${role}:${text}`).slice(-2)).toEqual([
       'user:Confirm',
       `assistant:${reply.text}`,
@@ -114,7 +114,7 @@ describe('proposal confirmation', () => {
     const sentHistory = llm.requests.at(-1)?.messages ?? [];
     expect(sentHistory.slice(-3)).toEqual([
       { role: 'user', text: '(I pressed Confirm on the Lisbon proposal.)' },
-      { role: 'assistant', text: expect.stringContaining('Stay booked: Lisbon'), toolCalls: [] },
+      { role: 'assistant', text: expect.stringContaining('Trip booked: Lisbon'), toolCalls: [] },
       { role: 'user', text: 'What did I book?' },
     ]);
   });

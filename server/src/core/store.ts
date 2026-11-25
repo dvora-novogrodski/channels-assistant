@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { ChatMessage, ConversationSummary, ProposalView } from '@app/shared';
+import type { BudgetTier, ChatMessage, ConversationSummary, ProposalView } from '@app/shared';
 import { NotFoundError } from './errors.js';
 import type { LlmMessage } from './llm/types.js';
 
@@ -13,9 +13,17 @@ export type Booking = Proposal & { bookingRef: string; confirmedAt: string };
 // Messages reference proposals by id so a card always shows the proposal's current status.
 export type StoredMessage = Omit<ChatMessage, 'proposal'> & { proposalId?: string };
 
+export interface UserPreferences {
+  homeAirport?: string;
+  travelers?: number;
+  budgetTier?: BudgetTier;
+  interests?: string[];
+}
+
 export interface User {
   id: string;
   bookings: Booking[];
+  preferences: UserPreferences;
 }
 
 export interface Conversation {
@@ -52,7 +60,7 @@ export class InMemoryConversationStore implements ConversationStore {
     const existing = this.users.get(userId);
     if (existing) return existing;
 
-    const user: User = { id: userId, bookings: [] };
+    const user: User = { id: userId, bookings: [], preferences: {} };
     this.users.set(userId, user);
     return user;
   }

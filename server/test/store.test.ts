@@ -4,9 +4,9 @@ import {
   DEFAULT_TITLE,
   InMemoryConversationStore,
   MAX_SEEN_EVENTS,
-  type Proposal,
   type StoredMessage,
 } from '../src/core/store.js';
+import { sampleProposal } from './fixtures.js';
 
 const ALICE = 'web:alice';
 const BOB = 'web:bob';
@@ -18,21 +18,6 @@ function createTickingClock() {
 
 function userMessage(text: string): StoredMessage {
   return { id: `m-${text}`, role: 'user', text, createdAt: new Date().toISOString() };
-}
-
-function sampleProposal(): Proposal {
-  return {
-    id: 'p-1',
-    destinationId: 'lisbon-pt',
-    destinationName: 'Lisbon',
-    country: 'Portugal',
-    startDate: '2027-05-12',
-    endDate: '2027-05-17',
-    nights: 5,
-    travelers: 2,
-    estimatedTotalUsd: 1400,
-    status: 'proposed',
-  };
 }
 
 describe('InMemoryConversationStore', () => {

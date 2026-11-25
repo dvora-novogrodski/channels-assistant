@@ -4,7 +4,28 @@
 /** Lifecycle of a simulated booking proposal. */
 export type ProposalStatus = 'proposed' | 'confirmed' | 'cancelled' | 'superseded';
 
-/** What a UI needs to render a booking card. */
+export interface ProposalStay {
+  name: string;
+  type: string;
+  rating: number;
+  nightlyRateUsd: number;
+  rooms: number;
+}
+
+/** A simulated flight: demo data, with a link to compare real prices. */
+export interface ProposalFlight {
+  airline: string;
+  flightNumber: string;
+  originAirport: string;
+  destinationAirport: string;
+  departTime: string; // HH:MM local, outbound
+  durationHours: number;
+  stops: number;
+  priceUsdPerTraveler: number; // round trip
+  compareUrl: string;
+}
+
+/** What a UI needs to render a trip package card. All money is computed in code, never by the LLM. */
 export interface ProposalView {
   id: string;
   destinationId: string;
@@ -14,7 +35,12 @@ export interface ProposalView {
   endDate: string; // YYYY-MM-DD
   nights: number;
   travelers: number;
-  estimatedTotalUsd: number; // computed in code, never by the LLM
+  stay: ProposalStay;
+  flight?: ProposalFlight;
+  costs: { stayUsd: number; flightsUsd: number };
+  estimatedTotalUsd: number;
+  dailyBudgetUsd: number; // typical spending per person per day, not included in the total
+  paymentMethod: string; // demo card on file, e.g. "Visa •••• 4242 (demo)"
   status: ProposalStatus;
   bookingRef?: string; // e.g. "TRV-4821", only when confirmed
 }
@@ -28,6 +54,7 @@ export interface ChatMessage {
   text: string;
   createdAt: string; // ISO timestamp
   proposal?: ProposalView; // present when this reply carries a booking card
+  quickReplies?: string[]; // short follow-ups the user can send with one tap
   error?: { kind: ErrorKind; retryable: boolean }; // present when the turn failed
 }
 

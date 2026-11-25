@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { HISTORY_WINDOW, MAX_TOOL_STEPS, TripAssistant, recentHistory } from '../src/core/assistant.js';
+import {
+  HISTORY_WINDOW,
+  MAX_TOOL_STEPS,
+  TripAssistant,
+  extractQuickReplies,
+  recentHistory,
+} from '../src/core/assistant.js';
 import { LlmError, type LlmMessage, type LlmReply } from '../src/core/llm/types.js';
 import { InMemoryConversationStore, type Conversation } from '../src/core/store.js';
 import { ScriptedLlm, textReply, toolReply } from './scriptedLlm.js';
@@ -82,7 +88,7 @@ describe('TripAssistant', () => {
 
   it('does not keep a proposal when the LLM fails after proposing', async () => {
     const llm = new ScriptedLlm(
-      toolReply({ name: 'propose_booking', args: LISBON_BOOKING }),
+      toolReply({ name: 'propose_trip', args: LISBON_BOOKING }),
       new LlmError('unavailable', 'timeout'),
     );
 
@@ -95,22 +101,22 @@ describe('TripAssistant', () => {
 
   it('attaches a proposal to the reply without creating a booking', async () => {
     const llm = new ScriptedLlm(
-      toolReply({ name: 'propose_booking', args: LISBON_BOOKING }),
+      toolReply({ name: 'propose_trip', args: LISBON_BOOKING }),
       textReply('Here is your Lisbon trip. Confirm to book it.'),
     );
 
     const { reply } = await createAssistant(llm).handleMessage(ALICE, conversation.id, 'Book Lisbon');
 
-    expect(reply.proposal).toMatchObject({ destinationName: 'Lisbon', status: 'proposed', estimatedTotalUsd: 1400 });
+    expect(reply.proposal).toMatchObject({ destinationName: 'Lisbon', status: 'proposed', estimatedTotalUsd: 425 });
     expect(store.getUser(ALICE).bookings).toEqual([]);
     expect(store.listMessages(ALICE, conversation.id).at(-1)?.proposal?.id).toBe(reply.proposal?.id);
   });
 
   it('supersedes the previous pending proposal when a new one is made', async () => {
     const llm = new ScriptedLlm(
-      toolReply({ name: 'propose_booking', args: LISBON_BOOKING }),
+      toolReply({ name: 'propose_trip', args: LISBON_BOOKING }),
       textReply('Proposed 5 nights.'),
-      toolReply({ name: 'propose_booking', args: { ...LISBON_BOOKING, nights: 4 } }),
+      toolReply({ name: 'propose_trip', args: { ...LISBON_BOOKING, nights: 4 } }),
       textReply('Updated to 4 nights.'),
     );
     const assistant = createAssistant(llm);
@@ -173,5 +179,58 @@ describe('recentHistory', () => {
     expect(window.length).toBeLessThanOrEqual(HISTORY_WINDOW);
     expect(window[0]?.role).toBe('user');
     expect(window.at(-1)).toEqual(history.at(-1));
+  });
+});
+
+describe('preferences', () => {
+  it('saves preferences on commit and gives them to the model in later turns', async () => {
+    const store = new InMemoryConversationStore();
+    const conversation = store.createConversation(ALICE);
+    const llm = new ScriptedLlm(
+      toolReply({ name: 'save_preferences', args: { homeAirport: 'TLV', travelers: 2 } }),
+      textReply('Noted, flying from Tel Aviv.'),
+      textReply('Sure.'),
+    );
+    const assistant = new TripAssistant({ store, llm, now: () => TODAY });
+
+    await assistant.handleMessage(ALICE, conversation.id, 'I fly from Tel Aviv with my partner');
+    await assistant.handleMessage(ALICE, conversation.id, 'Ideas for May?');
+
+    expect(store.getUser(ALICE).preferences).toEqual({ homeAirport: 'TLV', travelers: 2 });
+    expect(llm.requests.at(-1)?.system).toContain('home airport TLV; usually 2 traveler(s)');
+  });
+
+  it('does not save preferences when the turn fails', async () => {
+    const store = new InMemoryConversationStore();
+    const conversation = store.createConversation(ALICE);
+    const llm = new ScriptedLlm(
+      toolReply({ name: 'save_preferences', args: { homeAirport: 'TLV' } }),
+      new LlmError('unavailable', '503'),
+    );
+
+    await new TripAssistant({ store, llm, now: () => TODAY }).handleMessage(ALICE, conversation.id, 'I fly from TLV');
+
+    expect(store.getUser(ALICE).preferences).toEqual({});
+  });
+});
+
+describe('extractQuickReplies', () => {
+  it('strips the quick replies line and returns the options', () => {
+    expect(extractQuickReplies('Try Lisbon!\n\nQuick replies: Show cheaper | Tell me more | Book it')).toEqual({
+      text: 'Try Lisbon!',
+      quickReplies: ['Show cheaper', 'Tell me more', 'Book it'],
+    });
+  });
+
+  it('accepts bold labels and quotes, and drops overly long options', () => {
+    const long = 'x'.repeat(60);
+    expect(extractQuickReplies(`Hi\n**Quick replies:** "Yes" | ${long} | - Maybe later`)).toEqual({
+      text: 'Hi',
+      quickReplies: ['Yes', 'Maybe later'],
+    });
+  });
+
+  it('leaves text without a quick replies line unchanged', () => {
+    expect(extractQuickReplies('Just text')).toEqual({ text: 'Just text' });
   });
 });

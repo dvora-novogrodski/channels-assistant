@@ -4,575 +4,1694 @@
     "name": "Lisbon",
     "country": "Portugal",
     "region": "Europe",
-    "bestMonths": [3, 4, 5, 6, 9, 10],
+    "bestMonths": [
+      3,
+      4,
+      5,
+      6,
+      9,
+      10
+    ],
     "budgetTier": "mid",
     "dailyCostUsd": 140,
-    "idealDays": { "min": 3, "max": 5 },
-    "tags": ["city", "food", "culture", "nightlife"],
+    "idealDays": {
+      "min": 3,
+      "max": 5
+    },
+    "tags": [
+      "city",
+      "food",
+      "culture",
+      "nightlife"
+    ],
     "highlights": [
       "Tiled lanes and Fado bars of Alfama",
       "Belém Tower and fresh pastéis de nata",
       "Day trip to the palaces of Sintra",
       "Sunset from Miradouro da Senhora do Monte"
     ],
-    "notes": "Steep cobbled streets, so pack comfortable shoes. July and August are hot and crowded."
+    "notes": "Steep cobbled streets, so pack comfortable shoes. July and August are hot and crowded.",
+    "airportCode": "LIS",
+    "stays": [
+      {
+        "id": "lisbon-pt-stay-1",
+        "name": "Alfama Tile House",
+        "type": "guesthouse",
+        "tier": "budget",
+        "nightlyRateUsd": 85,
+        "rating": 4.5,
+        "highlight": "Azulejo-tiled rooms on a quiet Alfama lane"
+      },
+      {
+        "id": "lisbon-pt-stay-2",
+        "name": "Tagus View Suites",
+        "type": "hotel",
+        "tier": "mid",
+        "nightlyRateUsd": 190,
+        "rating": 4.7,
+        "highlight": "River-view balconies near Praça do Comércio"
+      }
+    ]
   },
   {
     "id": "barcelona-es",
     "name": "Barcelona",
     "country": "Spain",
     "region": "Europe",
-    "bestMonths": [4, 5, 6, 9, 10],
+    "bestMonths": [
+      4,
+      5,
+      6,
+      9,
+      10
+    ],
     "budgetTier": "mid",
     "dailyCostUsd": 170,
-    "idealDays": { "min": 3, "max": 5 },
-    "tags": ["city", "beach", "food", "nightlife", "culture"],
+    "idealDays": {
+      "min": 3,
+      "max": 5
+    },
+    "tags": [
+      "city",
+      "beach",
+      "food",
+      "nightlife",
+      "culture"
+    ],
     "highlights": [
       "Sagrada Família and Park Güell",
       "Wandering the Gothic Quarter",
       "Barceloneta beach",
       "Tapas crawl in El Born"
     ],
-    "notes": "Book Sagrada Família and Park Güell tickets in advance. Watch for pickpockets around Las Ramblas."
+    "notes": "Book Sagrada Família and Park Güell tickets in advance. Watch for pickpockets around Las Ramblas.",
+    "airportCode": "BCN",
+    "stays": [
+      {
+        "id": "barcelona-es-stay-1",
+        "name": "Gràcia Courtyard Rooms",
+        "type": "guesthouse",
+        "tier": "budget",
+        "nightlyRateUsd": 95,
+        "rating": 4.4,
+        "highlight": "Calm courtyard rooms in leafy Gràcia"
+      },
+      {
+        "id": "barcelona-es-stay-2",
+        "name": "Barceloneta Shore Hotel",
+        "type": "hotel",
+        "tier": "mid",
+        "nightlyRateUsd": 230,
+        "rating": 4.6,
+        "highlight": "Rooftop pool two minutes from the beach"
+      }
+    ]
   },
   {
     "id": "santorini-gr",
     "name": "Santorini",
     "country": "Greece",
     "region": "Europe",
-    "bestMonths": [5, 6, 9, 10],
+    "bestMonths": [
+      5,
+      6,
+      9,
+      10
+    ],
     "budgetTier": "luxury",
     "dailyCostUsd": 260,
-    "idealDays": { "min": 3, "max": 5 },
-    "tags": ["beach", "romantic"],
+    "idealDays": {
+      "min": 3,
+      "max": 5
+    },
+    "tags": [
+      "beach",
+      "romantic"
+    ],
     "highlights": [
       "Sunset over the caldera in Oia",
       "Catamaran trip around the volcano",
       "Bronze Age ruins of Akrotiri",
       "Red and black volcanic beaches"
     ],
-    "notes": "Many hotels and ferry routes close from November to March. Cliffside hotels often involve lots of stairs."
+    "notes": "Many hotels and ferry routes close from November to March. Cliffside hotels often involve lots of stairs.",
+    "airportCode": "JTR",
+    "stays": [
+      {
+        "id": "santorini-gr-stay-1",
+        "name": "Fira Whitewash Studios",
+        "type": "apartment",
+        "tier": "mid",
+        "nightlyRateUsd": 160,
+        "rating": 4.5,
+        "highlight": "Simple studios with a shared caldera terrace"
+      },
+      {
+        "id": "santorini-gr-stay-2",
+        "name": "Oia Caldera Cave Suites",
+        "type": "resort",
+        "tier": "luxury",
+        "nightlyRateUsd": 520,
+        "rating": 4.9,
+        "highlight": "Cave suites with private plunge pools facing the sunset"
+      }
+    ]
   },
   {
     "id": "reykjavik-is",
     "name": "Reykjavik",
     "country": "Iceland",
     "region": "Europe",
-    "bestMonths": [2, 3, 6, 7, 8, 9],
+    "bestMonths": [
+      2,
+      3,
+      6,
+      7,
+      8,
+      9
+    ],
     "budgetTier": "luxury",
     "dailyCostUsd": 250,
-    "idealDays": { "min": 5, "max": 8 },
-    "tags": ["nature", "adventure"],
+    "idealDays": {
+      "min": 5,
+      "max": 8
+    },
+    "tags": [
+      "nature",
+      "adventure"
+    ],
     "highlights": [
       "Golden Circle: Þingvellir, Geysir and Gullfoss",
       "Northern lights from September to March",
       "Waterfalls and black sand beaches of the South Coast",
       "Geothermal lagoons"
     ],
-    "notes": "Weather changes quickly; rent a 4x4 for winter driving. One of the most expensive destinations in Europe."
+    "notes": "Weather changes quickly; rent a 4x4 for winter driving. One of the most expensive destinations in Europe.",
+    "airportCode": "KEF",
+    "stays": [
+      {
+        "id": "reykjavik-is-stay-1",
+        "name": "Harbour Light Guesthouse",
+        "type": "guesthouse",
+        "tier": "mid",
+        "nightlyRateUsd": 170,
+        "rating": 4.4,
+        "highlight": "Cosy rooms near the old harbour"
+      },
+      {
+        "id": "reykjavik-is-stay-2",
+        "name": "Aurora Lava Lodge",
+        "type": "resort",
+        "tier": "luxury",
+        "nightlyRateUsd": 480,
+        "rating": 4.8,
+        "highlight": "Glass-roofed rooms for northern-lights watching"
+      }
+    ]
   },
   {
     "id": "prague-cz",
     "name": "Prague",
     "country": "Czechia",
     "region": "Europe",
-    "bestMonths": [4, 5, 6, 9, 10, 12],
+    "bestMonths": [
+      4,
+      5,
+      6,
+      9,
+      10,
+      12
+    ],
     "budgetTier": "budget",
     "dailyCostUsd": 85,
-    "idealDays": { "min": 3, "max": 4 },
-    "tags": ["city", "culture", "nightlife"],
+    "idealDays": {
+      "min": 3,
+      "max": 4
+    },
+    "tags": [
+      "city",
+      "culture",
+      "nightlife"
+    ],
     "highlights": [
       "Charles Bridge at dawn",
       "Prague Castle and St. Vitus Cathedral",
       "Old Town Square and the astronomical clock",
       "Christmas markets in December"
     ],
-    "notes": "The currency is the Czech koruna; avoid exchange booths at the airport and on tourist streets."
+    "notes": "The currency is the Czech koruna; avoid exchange booths at the airport and on tourist streets.",
+    "airportCode": "PRG",
+    "stays": [
+      {
+        "id": "prague-cz-stay-1",
+        "name": "Malá Strana Loft Rooms",
+        "type": "guesthouse",
+        "tier": "budget",
+        "nightlyRateUsd": 70,
+        "rating": 4.5,
+        "highlight": "Beamed lofts below Prague Castle"
+      },
+      {
+        "id": "prague-cz-stay-2",
+        "name": "Old Town Astronomer Hotel",
+        "type": "hotel",
+        "tier": "mid",
+        "nightlyRateUsd": 160,
+        "rating": 4.7,
+        "highlight": "Baroque building steps from Old Town Square"
+      }
+    ]
   },
   {
     "id": "amalfi-coast-it",
     "name": "Amalfi Coast",
     "country": "Italy",
     "region": "Europe",
-    "bestMonths": [5, 6, 9],
+    "bestMonths": [
+      5,
+      6,
+      9
+    ],
     "budgetTier": "luxury",
     "dailyCostUsd": 280,
-    "idealDays": { "min": 4, "max": 6 },
-    "tags": ["beach", "romantic", "food"],
+    "idealDays": {
+      "min": 4,
+      "max": 6
+    },
+    "tags": [
+      "beach",
+      "romantic",
+      "food"
+    ],
     "highlights": [
       "Pastel houses of Positano",
       "Path of the Gods hike",
       "Cliff-top gardens of Ravello",
       "Boat day trip to Capri"
     ],
-    "notes": "The coastal road is narrow and congested; ferries are easier in summer. Many hotels close from November to March."
+    "notes": "The coastal road is narrow and congested; ferries are easier in summer. Many hotels close from November to March.",
+    "airportCode": "NAP",
+    "stays": [
+      {
+        "id": "amalfi-coast-it-stay-1",
+        "name": "Positano Lemon Terrace",
+        "type": "guesthouse",
+        "tier": "mid",
+        "nightlyRateUsd": 210,
+        "rating": 4.6,
+        "highlight": "Family-run rooms with sea-view lemon terrace"
+      },
+      {
+        "id": "amalfi-coast-it-stay-2",
+        "name": "Ravello Cliffside Villa",
+        "type": "resort",
+        "tier": "luxury",
+        "nightlyRateUsd": 620,
+        "rating": 4.9,
+        "highlight": "Clifftop gardens and an infinity pool over the coast"
+      }
+    ]
   },
   {
     "id": "interlaken-ch",
     "name": "Interlaken",
     "country": "Switzerland",
     "region": "Europe",
-    "bestMonths": [1, 2, 6, 7, 8, 9],
+    "bestMonths": [
+      1,
+      2,
+      6,
+      7,
+      8,
+      9
+    ],
     "budgetTier": "luxury",
     "dailyCostUsd": 300,
-    "idealDays": { "min": 4, "max": 7 },
-    "tags": ["nature", "adventure", "winter-sports", "family"],
+    "idealDays": {
+      "min": 4,
+      "max": 7
+    },
+    "tags": [
+      "nature",
+      "adventure",
+      "winter-sports",
+      "family"
+    ],
     "highlights": [
       "Train to Jungfraujoch, the 'Top of Europe'",
       "Paragliding over the lakes",
       "Boat ride on turquoise Lake Brienz",
       "Skiing around Grindelwald and Wengen"
     ],
-    "notes": "Mountain trains are expensive; a Swiss Travel Pass or regional pass can reduce transport costs."
+    "notes": "Mountain trains are expensive; a Swiss Travel Pass or regional pass can reduce transport costs.",
+    "airportCode": "ZRH",
+    "stays": [
+      {
+        "id": "interlaken-ch-stay-1",
+        "name": "Jungfrau Chalet Hostel",
+        "type": "hostel",
+        "tier": "budget",
+        "nightlyRateUsd": 120,
+        "rating": 4.4,
+        "highlight": "Wooden chalet with mountain views and a shared kitchen"
+      },
+      {
+        "id": "interlaken-ch-stay-2",
+        "name": "Lakeside Alpine Grand",
+        "type": "hotel",
+        "tier": "luxury",
+        "nightlyRateUsd": 450,
+        "rating": 4.8,
+        "highlight": "Belle-époque hotel between the two lakes"
+      }
+    ]
   },
   {
     "id": "edinburgh-gb",
     "name": "Edinburgh",
     "country": "United Kingdom",
     "region": "Europe",
-    "bestMonths": [5, 6, 7, 8, 9],
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
     "budgetTier": "mid",
     "dailyCostUsd": 180,
-    "idealDays": { "min": 3, "max": 4 },
-    "tags": ["city", "culture", "nature"],
+    "idealDays": {
+      "min": 3,
+      "max": 4
+    },
+    "tags": [
+      "city",
+      "culture",
+      "nature"
+    ],
     "highlights": [
       "Edinburgh Castle and the Royal Mile",
       "Hike up Arthur's Seat",
       "Festival Fringe in August",
       "Day trip to the Scottish Highlands"
     ],
-    "notes": "Accommodation prices rise sharply during the August festivals, so book early."
+    "notes": "Accommodation prices rise sharply during the August festivals, so book early.",
+    "airportCode": "EDI",
+    "stays": [
+      {
+        "id": "edinburgh-gb-stay-1",
+        "name": "Royal Mile Townhouse",
+        "type": "guesthouse",
+        "tier": "mid",
+        "nightlyRateUsd": 150,
+        "rating": 4.5,
+        "highlight": "Georgian rooms off the Royal Mile"
+      },
+      {
+        "id": "edinburgh-gb-stay-2",
+        "name": "Castle Rock Residence",
+        "type": "hotel",
+        "tier": "luxury",
+        "nightlyRateUsd": 340,
+        "rating": 4.8,
+        "highlight": "Castle-view suites in the New Town"
+      }
+    ]
   },
   {
     "id": "kyoto-jp",
     "name": "Kyoto",
     "country": "Japan",
     "region": "Asia",
-    "bestMonths": [3, 4, 10, 11],
+    "bestMonths": [
+      3,
+      4,
+      10,
+      11
+    ],
     "budgetTier": "mid",
     "dailyCostUsd": 160,
-    "idealDays": { "min": 3, "max": 5 },
-    "tags": ["culture", "food", "nature"],
+    "idealDays": {
+      "min": 3,
+      "max": 5
+    },
+    "tags": [
+      "culture",
+      "food",
+      "nature"
+    ],
     "highlights": [
       "Thousands of torii gates at Fushimi Inari",
       "Arashiyama bamboo grove",
       "Evening walk through the Gion district",
       "Kiyomizu-dera temple"
     ],
-    "notes": "Cherry blossom season (early April) and autumn leaves (November) are very busy; book months ahead."
+    "notes": "Cherry blossom season (early April) and autumn leaves (November) are very busy; book months ahead.",
+    "airportCode": "KIX",
+    "stays": [
+      {
+        "id": "kyoto-jp-stay-1",
+        "name": "Gion Machiya Inn",
+        "type": "guesthouse",
+        "tier": "mid",
+        "nightlyRateUsd": 150,
+        "rating": 4.7,
+        "highlight": "Restored wooden townhouse with tatami rooms"
+      },
+      {
+        "id": "kyoto-jp-stay-2",
+        "name": "Higashiyama Garden Ryokan",
+        "type": "resort",
+        "tier": "luxury",
+        "nightlyRateUsd": 420,
+        "rating": 4.9,
+        "highlight": "Traditional ryokan with private onsen and kaiseki dinners"
+      }
+    ]
   },
   {
     "id": "tokyo-jp",
     "name": "Tokyo",
     "country": "Japan",
     "region": "Asia",
-    "bestMonths": [3, 4, 5, 10, 11],
+    "bestMonths": [
+      3,
+      4,
+      5,
+      10,
+      11
+    ],
     "budgetTier": "mid",
     "dailyCostUsd": 180,
-    "idealDays": { "min": 4, "max": 6 },
-    "tags": ["city", "food", "nightlife", "family"],
+    "idealDays": {
+      "min": 4,
+      "max": 6
+    },
+    "tags": [
+      "city",
+      "food",
+      "nightlife",
+      "family"
+    ],
     "highlights": [
       "Shibuya Crossing and Shinjuku at night",
       "Tsukiji Outer Market food stalls",
       "Senso-ji temple in Asakusa",
       "Day trip to Hakone or Nikko"
     ],
-    "notes": "Get a rechargeable IC card for trains. July and August are hot and humid."
+    "notes": "Get a rechargeable IC card for trains. July and August are hot and humid.",
+    "airportCode": "HND",
+    "stays": [
+      {
+        "id": "tokyo-jp-stay-1",
+        "name": "Asakusa Lantern Hotel",
+        "type": "hotel",
+        "tier": "budget",
+        "nightlyRateUsd": 110,
+        "rating": 4.4,
+        "highlight": "Compact rooms near Senso-ji with a rooftop bar"
+      },
+      {
+        "id": "tokyo-jp-stay-2",
+        "name": "Shinjuku Skyline Tower",
+        "type": "hotel",
+        "tier": "luxury",
+        "nightlyRateUsd": 380,
+        "rating": 4.8,
+        "highlight": "High-floor rooms with Mount Fuji views on clear days"
+      }
+    ]
   },
   {
     "id": "bali-id",
     "name": "Bali",
     "country": "Indonesia",
     "region": "Asia",
-    "bestMonths": [4, 5, 6, 7, 8, 9, 10],
+    "bestMonths": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
     "budgetTier": "budget",
     "dailyCostUsd": 70,
-    "idealDays": { "min": 7, "max": 12 },
-    "tags": ["beach", "nature", "culture", "romantic"],
+    "idealDays": {
+      "min": 7,
+      "max": 12
+    },
+    "tags": [
+      "beach",
+      "nature",
+      "culture",
+      "romantic"
+    ],
     "highlights": [
       "Rice terraces around Ubud",
       "Sunset at Uluwatu temple",
       "Surfing in Canggu",
       "Sunrise trek up Mount Batur"
     ],
-    "notes": "Rainy season runs roughly November to March. A tourist levy is charged on arrival."
+    "notes": "Rainy season runs roughly November to March. A tourist levy is charged on arrival.",
+    "airportCode": "DPS",
+    "stays": [
+      {
+        "id": "bali-id-stay-1",
+        "name": "Ubud Rice Field Bungalows",
+        "type": "guesthouse",
+        "tier": "budget",
+        "nightlyRateUsd": 55,
+        "rating": 4.6,
+        "highlight": "Bamboo bungalows overlooking rice terraces"
+      },
+      {
+        "id": "bali-id-stay-2",
+        "name": "Uluwatu Cliff Villas",
+        "type": "resort",
+        "tier": "luxury",
+        "nightlyRateUsd": 290,
+        "rating": 4.8,
+        "highlight": "Private pool villas above the surf breaks"
+      }
+    ]
   },
   {
     "id": "chiang-mai-th",
     "name": "Chiang Mai",
     "country": "Thailand",
     "region": "Asia",
-    "bestMonths": [1, 2, 11, 12],
+    "bestMonths": [
+      1,
+      2,
+      11,
+      12
+    ],
     "budgetTier": "budget",
     "dailyCostUsd": 45,
-    "idealDays": { "min": 4, "max": 7 },
-    "tags": ["culture", "food", "nature", "adventure"],
+    "idealDays": {
+      "min": 4,
+      "max": 7
+    },
+    "tags": [
+      "culture",
+      "food",
+      "nature",
+      "adventure"
+    ],
     "highlights": [
       "Doi Suthep temple above the city",
       "Night bazaars and street food",
       "Ethical elephant sanctuary visit",
       "Thai cooking class"
     ],
-    "notes": "Avoid March and April, when crop burning causes poor air quality. Choose sanctuaries that don't offer elephant rides."
+    "notes": "Avoid March and April, when crop burning causes poor air quality. Choose sanctuaries that don't offer elephant rides.",
+    "airportCode": "CNX",
+    "stays": [
+      {
+        "id": "chiang-mai-th-stay-1",
+        "name": "Nimman Teak House",
+        "type": "guesthouse",
+        "tier": "budget",
+        "nightlyRateUsd": 35,
+        "rating": 4.5,
+        "highlight": "Teak-wood rooms in the café district"
+      },
+      {
+        "id": "chiang-mai-th-stay-2",
+        "name": "Old City Lanna Boutique",
+        "type": "hotel",
+        "tier": "mid",
+        "nightlyRateUsd": 95,
+        "rating": 4.7,
+        "highlight": "Lanna-style boutique hotel with a garden pool"
+      }
+    ]
   },
   {
     "id": "hanoi-ha-long-vn",
     "name": "Hanoi & Ha Long Bay",
     "country": "Vietnam",
     "region": "Asia",
-    "bestMonths": [3, 4, 10, 11],
+    "bestMonths": [
+      3,
+      4,
+      10,
+      11
+    ],
     "budgetTier": "budget",
     "dailyCostUsd": 50,
-    "idealDays": { "min": 4, "max": 6 },
-    "tags": ["city", "food", "nature", "culture"],
+    "idealDays": {
+      "min": 4,
+      "max": 6
+    },
+    "tags": [
+      "city",
+      "food",
+      "nature",
+      "culture"
+    ],
     "highlights": [
       "Street food in Hanoi's Old Quarter",
       "Overnight cruise in Ha Long Bay",
       "Hoan Kiem Lake at sunrise",
       "Egg coffee in a hidden café"
     ],
-    "notes": "Northern winters (December to February) can be cool and grey. Check e-visa requirements before travel."
+    "notes": "Northern winters (December to February) can be cool and grey. Check e-visa requirements before travel.",
+    "airportCode": "HAN",
+    "stays": [
+      {
+        "id": "hanoi-ha-long-vn-stay-1",
+        "name": "Old Quarter Lantern Rooms",
+        "type": "guesthouse",
+        "tier": "budget",
+        "nightlyRateUsd": 40,
+        "rating": 4.5,
+        "highlight": "Walk-everywhere rooms above a quiet alley"
+      },
+      {
+        "id": "hanoi-ha-long-vn-stay-2",
+        "name": "Hoan Kiem Heritage Hotel",
+        "type": "hotel",
+        "tier": "mid",
+        "nightlyRateUsd": 110,
+        "rating": 4.7,
+        "highlight": "Colonial-era building beside the lake"
+      }
+    ]
   },
   {
     "id": "maldives-mv",
     "name": "Maldives",
     "country": "Maldives",
     "region": "Asia",
-    "bestMonths": [1, 2, 3, 4, 11, 12],
+    "bestMonths": [
+      1,
+      2,
+      3,
+      4,
+      11,
+      12
+    ],
     "budgetTier": "luxury",
     "dailyCostUsd": 450,
-    "idealDays": { "min": 5, "max": 8 },
-    "tags": ["beach", "romantic", "nature"],
+    "idealDays": {
+      "min": 5,
+      "max": 8
+    },
+    "tags": [
+      "beach",
+      "romantic",
+      "nature"
+    ],
     "highlights": [
       "Overwater villa stay",
       "Snorkeling with manta rays",
       "Private sandbank picnic",
       "Sunset dolphin cruise"
     ],
-    "notes": "Resorts are reached by speedboat or seaplane, which adds noticeable cost. May to October brings more rain."
+    "notes": "Resorts are reached by speedboat or seaplane, which adds noticeable cost. May to October brings more rain.",
+    "airportCode": "MLE",
+    "stays": [
+      {
+        "id": "maldives-mv-stay-1",
+        "name": "Maafushi Beach Guesthouse",
+        "type": "guesthouse",
+        "tier": "mid",
+        "nightlyRateUsd": 140,
+        "rating": 4.4,
+        "highlight": "Local-island guesthouse with a bikini beach"
+      },
+      {
+        "id": "maldives-mv-stay-2",
+        "name": "Coral Lagoon Water Villas",
+        "type": "resort",
+        "tier": "luxury",
+        "nightlyRateUsd": 780,
+        "rating": 4.9,
+        "highlight": "Overwater villas with glass floors and reef access"
+      }
+    ]
   },
   {
     "id": "seoul-kr",
     "name": "Seoul",
     "country": "South Korea",
     "region": "Asia",
-    "bestMonths": [4, 5, 9, 10, 11],
+    "bestMonths": [
+      4,
+      5,
+      9,
+      10,
+      11
+    ],
     "budgetTier": "mid",
     "dailyCostUsd": 130,
-    "idealDays": { "min": 4, "max": 6 },
-    "tags": ["city", "food", "culture", "nightlife"],
+    "idealDays": {
+      "min": 4,
+      "max": 6
+    },
+    "tags": [
+      "city",
+      "food",
+      "culture",
+      "nightlife"
+    ],
     "highlights": [
       "Gyeongbokgung Palace in hanbok",
       "Bukchon Hanok Village",
       "Street food in Myeongdong and Gwangjang Market",
       "Guided tour to the DMZ"
     ],
-    "notes": "Check entry authorization requirements before booking. A T-money card covers subway and buses."
+    "notes": "Check entry authorization requirements before booking. A T-money card covers subway and buses.",
+    "airportCode": "ICN",
+    "stays": [
+      {
+        "id": "seoul-kr-stay-1",
+        "name": "Bukchon Hanok Stay",
+        "type": "guesthouse",
+        "tier": "mid",
+        "nightlyRateUsd": 120,
+        "rating": 4.6,
+        "highlight": "Traditional hanok rooms with a courtyard"
+      },
+      {
+        "id": "seoul-kr-stay-2",
+        "name": "Gangnam River Hotel",
+        "type": "hotel",
+        "tier": "luxury",
+        "nightlyRateUsd": 300,
+        "rating": 4.7,
+        "highlight": "Modern rooms with Han River views"
+      }
+    ]
   },
   {
     "id": "dubai-ae",
     "name": "Dubai",
     "country": "United Arab Emirates",
     "region": "Middle East",
-    "bestMonths": [1, 2, 3, 11, 12],
+    "bestMonths": [
+      1,
+      2,
+      3,
+      11,
+      12
+    ],
     "budgetTier": "luxury",
     "dailyCostUsd": 250,
-    "idealDays": { "min": 3, "max": 5 },
-    "tags": ["city", "beach", "family", "adventure"],
+    "idealDays": {
+      "min": 3,
+      "max": 5
+    },
+    "tags": [
+      "city",
+      "beach",
+      "family",
+      "adventure"
+    ],
     "highlights": [
       "View from the Burj Khalifa",
       "Desert safari with dune bashing",
       "Dubai Fountain show",
       "Old Dubai souks and an abra boat ride"
     ],
-    "notes": "Summer temperatures regularly exceed 40°C. Dress modestly in traditional areas."
+    "notes": "Summer temperatures regularly exceed 40°C. Dress modestly in traditional areas.",
+    "airportCode": "DXB",
+    "stays": [
+      {
+        "id": "dubai-ae-stay-1",
+        "name": "Al Fahidi Heritage Inn",
+        "type": "guesthouse",
+        "tier": "mid",
+        "nightlyRateUsd": 130,
+        "rating": 4.5,
+        "highlight": "Wind-tower house in the old quarter"
+      },
+      {
+        "id": "dubai-ae-stay-2",
+        "name": "Palm Marina Resort",
+        "type": "resort",
+        "tier": "luxury",
+        "nightlyRateUsd": 420,
+        "rating": 4.8,
+        "highlight": "Private beach and pools on the Palm"
+      }
+    ]
   },
   {
     "id": "petra-wadi-rum-jo",
     "name": "Petra & Wadi Rum",
     "country": "Jordan",
     "region": "Middle East",
-    "bestMonths": [3, 4, 5, 10, 11],
+    "bestMonths": [
+      3,
+      4,
+      5,
+      10,
+      11
+    ],
     "budgetTier": "mid",
     "dailyCostUsd": 120,
-    "idealDays": { "min": 3, "max": 5 },
-    "tags": ["culture", "adventure", "nature"],
+    "idealDays": {
+      "min": 3,
+      "max": 5
+    },
+    "tags": [
+      "culture",
+      "adventure",
+      "nature"
+    ],
     "highlights": [
       "The Treasury through the Siq",
       "Hike to the Monastery",
       "Night in a Wadi Rum desert camp",
       "Floating in the Dead Sea"
     ],
-    "notes": "The Jordan Pass bundles the visa fee and Petra entry for eligible stays. Petra involves many hours of walking."
+    "notes": "The Jordan Pass bundles the visa fee and Petra entry for eligible stays. Petra involves many hours of walking.",
+    "airportCode": "AMM",
+    "stays": [
+      {
+        "id": "petra-wadi-rum-jo-stay-1",
+        "name": "Wadi Musa Valley Hotel",
+        "type": "hotel",
+        "tier": "budget",
+        "nightlyRateUsd": 75,
+        "rating": 4.4,
+        "highlight": "Short walk to the Petra visitor centre"
+      },
+      {
+        "id": "petra-wadi-rum-jo-stay-2",
+        "name": "Wadi Rum Starlight Camp",
+        "type": "resort",
+        "tier": "mid",
+        "nightlyRateUsd": 180,
+        "rating": 4.8,
+        "highlight": "Bubble tents for sleeping under the desert sky"
+      }
+    ]
   },
   {
     "id": "marrakech-ma",
     "name": "Marrakech",
     "country": "Morocco",
     "region": "Africa",
-    "bestMonths": [3, 4, 5, 10, 11],
+    "bestMonths": [
+      3,
+      4,
+      5,
+      10,
+      11
+    ],
     "budgetTier": "budget",
     "dailyCostUsd": 75,
-    "idealDays": { "min": 3, "max": 5 },
-    "tags": ["culture", "food", "adventure"],
+    "idealDays": {
+      "min": 3,
+      "max": 5
+    },
+    "tags": [
+      "culture",
+      "food",
+      "adventure"
+    ],
     "highlights": [
       "Evening on Jemaa el-Fnaa square",
       "Majorelle Garden",
       "Stay in a traditional riad",
       "Day trip into the Atlas Mountains"
     ],
-    "notes": "Haggling is expected in the souks. Summers are very hot."
+    "notes": "Haggling is expected in the souks. Summers are very hot.",
+    "airportCode": "RAK",
+    "stays": [
+      {
+        "id": "marrakech-ma-stay-1",
+        "name": "Medina Orange Riad",
+        "type": "guesthouse",
+        "tier": "budget",
+        "nightlyRateUsd": 65,
+        "rating": 4.6,
+        "highlight": "Riad with an orange-tree courtyard and rooftop breakfast"
+      },
+      {
+        "id": "marrakech-ma-stay-2",
+        "name": "Palmeraie Garden Palace",
+        "type": "resort",
+        "tier": "luxury",
+        "nightlyRateUsd": 340,
+        "rating": 4.8,
+        "highlight": "Palm-grove resort with a hammam and big pools"
+      }
+    ]
   },
   {
     "id": "cape-town-za",
     "name": "Cape Town",
     "country": "South Africa",
     "region": "Africa",
-    "bestMonths": [1, 2, 3, 11, 12],
+    "bestMonths": [
+      1,
+      2,
+      3,
+      11,
+      12
+    ],
     "budgetTier": "mid",
     "dailyCostUsd": 120,
-    "idealDays": { "min": 5, "max": 8 },
-    "tags": ["nature", "food", "beach", "adventure"],
+    "idealDays": {
+      "min": 5,
+      "max": 8
+    },
+    "tags": [
+      "nature",
+      "food",
+      "beach",
+      "adventure"
+    ],
     "highlights": [
       "Cable car or hike up Table Mountain",
       "Drive to Cape Point",
       "Penguins at Boulders Beach",
       "Wine tasting in Stellenbosch"
     ],
-    "notes": "Seasons are reversed: December to February is summer. Use rideshares rather than walking at night."
+    "notes": "Seasons are reversed: December to February is summer. Use rideshares rather than walking at night.",
+    "airportCode": "CPT",
+    "stays": [
+      {
+        "id": "cape-town-za-stay-1",
+        "name": "Bo-Kaap Colour House",
+        "type": "guesthouse",
+        "tier": "budget",
+        "nightlyRateUsd": 70,
+        "rating": 4.5,
+        "highlight": "Bright rooms in the colourful Bo-Kaap"
+      },
+      {
+        "id": "cape-town-za-stay-2",
+        "name": "Camps Bay Ocean Hotel",
+        "type": "hotel",
+        "tier": "luxury",
+        "nightlyRateUsd": 310,
+        "rating": 4.8,
+        "highlight": "Beachfront rooms facing the Twelve Apostles"
+      }
+    ]
   },
   {
     "id": "serengeti-zanzibar-tz",
     "name": "Serengeti & Zanzibar",
     "country": "Tanzania",
     "region": "Africa",
-    "bestMonths": [1, 2, 6, 7, 8, 9, 10],
+    "bestMonths": [
+      1,
+      2,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
     "budgetTier": "luxury",
     "dailyCostUsd": 380,
-    "idealDays": { "min": 7, "max": 10 },
-    "tags": ["nature", "adventure", "beach"],
+    "idealDays": {
+      "min": 7,
+      "max": 10
+    },
+    "tags": [
+      "nature",
+      "adventure",
+      "beach"
+    ],
     "highlights": [
       "Game drives during the Great Migration",
       "Ngorongoro Crater",
       "Stone Town in Zanzibar",
       "White sand beaches of Nungwi"
     ],
-    "notes": "Check visa and vaccination requirements well ahead. The long rains (April and May) make some roads difficult."
+    "notes": "Check visa and vaccination requirements well ahead. The long rains (April and May) make some roads difficult.",
+    "airportCode": "JRO",
+    "stays": [
+      {
+        "id": "serengeti-zanzibar-tz-stay-1",
+        "name": "Serengeti Tented Camp",
+        "type": "resort",
+        "tier": "luxury",
+        "nightlyRateUsd": 520,
+        "rating": 4.9,
+        "highlight": "Canvas suites on the migration route, game drives included"
+      },
+      {
+        "id": "serengeti-zanzibar-tz-stay-2",
+        "name": "Stone Town Spice House",
+        "type": "guesthouse",
+        "tier": "mid",
+        "nightlyRateUsd": 120,
+        "rating": 4.5,
+        "highlight": "Carved-door house in the heart of Stone Town"
+      }
+    ]
   },
   {
     "id": "cairo-luxor-eg",
     "name": "Cairo & Luxor",
     "country": "Egypt",
     "region": "Africa",
-    "bestMonths": [1, 2, 3, 10, 11, 12],
+    "bestMonths": [
+      1,
+      2,
+      3,
+      10,
+      11,
+      12
+    ],
     "budgetTier": "budget",
     "dailyCostUsd": 80,
-    "idealDays": { "min": 6, "max": 9 },
-    "tags": ["culture", "adventure"],
+    "idealDays": {
+      "min": 6,
+      "max": 9
+    },
+    "tags": [
+      "culture",
+      "adventure"
+    ],
     "highlights": [
       "Pyramids of Giza",
       "Grand Egyptian Museum",
       "Valley of the Kings in Luxor",
       "Felucca sail on the Nile"
     ],
-    "notes": "Summer is extremely hot. Agree on prices with taxis and guides before starting."
+    "notes": "Summer is extremely hot. Agree on prices with taxis and guides before starting.",
+    "airportCode": "CAI",
+    "stays": [
+      {
+        "id": "cairo-luxor-eg-stay-1",
+        "name": "Giza Pyramids View Inn",
+        "type": "guesthouse",
+        "tier": "budget",
+        "nightlyRateUsd": 55,
+        "rating": 4.4,
+        "highlight": "Rooftop breakfast with pyramid views"
+      },
+      {
+        "id": "cairo-luxor-eg-stay-2",
+        "name": "Nile Corniche Grand",
+        "type": "hotel",
+        "tier": "mid",
+        "nightlyRateUsd": 160,
+        "rating": 4.6,
+        "highlight": "Riverside hotel in Luxor near the temples"
+      }
+    ]
   },
   {
     "id": "new-york-us",
     "name": "New York City",
     "country": "United States",
     "region": "North America",
-    "bestMonths": [4, 5, 6, 9, 10, 12],
+    "bestMonths": [
+      4,
+      5,
+      6,
+      9,
+      10,
+      12
+    ],
     "budgetTier": "luxury",
     "dailyCostUsd": 280,
-    "idealDays": { "min": 4, "max": 6 },
-    "tags": ["city", "food", "culture", "nightlife", "family"],
+    "idealDays": {
+      "min": 4,
+      "max": 6
+    },
+    "tags": [
+      "city",
+      "food",
+      "culture",
+      "nightlife",
+      "family"
+    ],
     "highlights": [
       "Central Park by bike",
       "A Broadway show",
       "The Metropolitan Museum of Art",
       "Walk across the Brooklyn Bridge"
     ],
-    "notes": "Hotels are expensive and small. December is festive but very busy."
+    "notes": "Hotels are expensive and small. December is festive but very busy.",
+    "airportCode": "JFK",
+    "stays": [
+      {
+        "id": "new-york-us-stay-1",
+        "name": "Brooklyn Brownstone Rooms",
+        "type": "guesthouse",
+        "tier": "mid",
+        "nightlyRateUsd": 210,
+        "rating": 4.5,
+        "highlight": "Townhouse rooms one subway stop from Manhattan"
+      },
+      {
+        "id": "new-york-us-stay-2",
+        "name": "Midtown Skyline Hotel",
+        "type": "hotel",
+        "tier": "luxury",
+        "nightlyRateUsd": 420,
+        "rating": 4.7,
+        "highlight": "Walk to Broadway and Central Park"
+      }
+    ]
   },
   {
     "id": "banff-ca",
     "name": "Banff",
     "country": "Canada",
     "region": "North America",
-    "bestMonths": [1, 2, 6, 7, 8, 9],
+    "bestMonths": [
+      1,
+      2,
+      6,
+      7,
+      8,
+      9
+    ],
     "budgetTier": "mid",
     "dailyCostUsd": 200,
-    "idealDays": { "min": 4, "max": 7 },
-    "tags": ["nature", "adventure", "winter-sports", "family"],
+    "idealDays": {
+      "min": 4,
+      "max": 7
+    },
+    "tags": [
+      "nature",
+      "adventure",
+      "winter-sports",
+      "family"
+    ],
     "highlights": [
       "Lake Louise and Moraine Lake",
       "Drive the Icefields Parkway",
       "Banff Gondola",
       "Skiing at Sunshine Village"
     ],
-    "notes": "A national park pass is required. Moraine Lake is reached by shuttle rather than private car."
+    "notes": "A national park pass is required. Moraine Lake is reached by shuttle rather than private car.",
+    "airportCode": "YYC",
+    "stays": [
+      {
+        "id": "banff-ca-stay-1",
+        "name": "Bow River Lodge",
+        "type": "hotel",
+        "tier": "mid",
+        "nightlyRateUsd": 210,
+        "rating": 4.5,
+        "highlight": "Log-style lodge on the edge of town"
+      },
+      {
+        "id": "banff-ca-stay-2",
+        "name": "Lake Louise Mountain Chateau",
+        "type": "resort",
+        "tier": "luxury",
+        "nightlyRateUsd": 520,
+        "rating": 4.8,
+        "highlight": "Lakeside rooms facing the glacier"
+      }
+    ]
   },
   {
     "id": "tulum-mx",
     "name": "Tulum",
     "country": "Mexico",
     "region": "North America",
-    "bestMonths": [1, 2, 3, 4, 11, 12],
+    "bestMonths": [
+      1,
+      2,
+      3,
+      4,
+      11,
+      12
+    ],
     "budgetTier": "mid",
     "dailyCostUsd": 150,
-    "idealDays": { "min": 4, "max": 7 },
-    "tags": ["beach", "nature", "culture", "romantic"],
+    "idealDays": {
+      "min": 4,
+      "max": 7
+    },
+    "tags": [
+      "beach",
+      "nature",
+      "culture",
+      "romantic"
+    ],
     "highlights": [
       "Mayan ruins above the sea",
       "Swimming in cenotes",
       "Sian Ka'an Biosphere Reserve",
       "Climbing at the Cobá ruins"
     ],
-    "notes": "Hurricane season runs June to November. Sargassum seaweed can affect beaches in the warmer months."
+    "notes": "Hurricane season runs June to November. Sargassum seaweed can affect beaches in the warmer months.",
+    "airportCode": "CUN",
+    "stays": [
+      {
+        "id": "tulum-mx-stay-1",
+        "name": "Tulum Jungle Cabañas",
+        "type": "guesthouse",
+        "tier": "mid",
+        "nightlyRateUsd": 140,
+        "rating": 4.5,
+        "highlight": "Palm-thatched cabañas a bike ride from the beach"
+      },
+      {
+        "id": "tulum-mx-stay-2",
+        "name": "Caribbean Shore Eco Resort",
+        "type": "resort",
+        "tier": "luxury",
+        "nightlyRateUsd": 380,
+        "rating": 4.8,
+        "highlight": "Beachfront eco-resort with a cenote spa"
+      }
+    ]
   },
   {
     "id": "maui-us",
     "name": "Maui",
     "country": "United States",
     "region": "North America",
-    "bestMonths": [4, 5, 9, 10],
+    "bestMonths": [
+      4,
+      5,
+      9,
+      10
+    ],
     "budgetTier": "luxury",
     "dailyCostUsd": 320,
-    "idealDays": { "min": 6, "max": 9 },
-    "tags": ["beach", "nature", "adventure", "romantic", "family"],
+    "idealDays": {
+      "min": 6,
+      "max": 9
+    },
+    "tags": [
+      "beach",
+      "nature",
+      "adventure",
+      "romantic",
+      "family"
+    ],
     "highlights": [
       "Road to Hana",
       "Sunrise at Haleakalā",
       "Snorkeling at Molokini Crater",
       "Whale watching from December to April"
     ],
-    "notes": "Haleakalā sunrise requires an advance reservation. A rental car is essentially required."
+    "notes": "Haleakalā sunrise requires an advance reservation. A rental car is essentially required.",
+    "airportCode": "OGG",
+    "stays": [
+      {
+        "id": "maui-us-stay-1",
+        "name": "Paia Surf Cottages",
+        "type": "apartment",
+        "tier": "mid",
+        "nightlyRateUsd": 240,
+        "rating": 4.5,
+        "highlight": "Beach-town cottages near Ho'okipa"
+      },
+      {
+        "id": "maui-us-stay-2",
+        "name": "Wailea Ocean Resort",
+        "type": "resort",
+        "tier": "luxury",
+        "nightlyRateUsd": 560,
+        "rating": 4.8,
+        "highlight": "Oceanfront resort on a calm snorkelling beach"
+      }
+    ]
   },
   {
     "id": "costa-rica-cr",
     "name": "Arenal & Monteverde",
     "country": "Costa Rica",
     "region": "North America",
-    "bestMonths": [1, 2, 3, 4, 12],
+    "bestMonths": [
+      1,
+      2,
+      3,
+      4,
+      12
+    ],
     "budgetTier": "mid",
     "dailyCostUsd": 130,
-    "idealDays": { "min": 7, "max": 10 },
-    "tags": ["nature", "adventure", "family", "beach"],
+    "idealDays": {
+      "min": 7,
+      "max": 10
+    },
+    "tags": [
+      "nature",
+      "adventure",
+      "family",
+      "beach"
+    ],
     "highlights": [
       "Arenal Volcano and hot springs",
       "Hanging bridges in the Monteverde cloud forest",
       "Ziplining over the canopy",
       "Wildlife at Manuel Antonio National Park"
     ],
-    "notes": "May to November is the cheaper 'green season' with afternoon rain. A 4x4 is recommended for rural roads."
+    "notes": "May to November is the cheaper 'green season' with afternoon rain. A 4x4 is recommended for rural roads.",
+    "airportCode": "SJO",
+    "stays": [
+      {
+        "id": "costa-rica-cr-stay-1",
+        "name": "Arenal Volcano View Lodge",
+        "type": "hotel",
+        "tier": "mid",
+        "nightlyRateUsd": 140,
+        "rating": 4.6,
+        "highlight": "Rooms facing the volcano with hot-spring access"
+      },
+      {
+        "id": "costa-rica-cr-stay-2",
+        "name": "Monteverde Cloud Forest Treehouse",
+        "type": "resort",
+        "tier": "luxury",
+        "nightlyRateUsd": 290,
+        "rating": 4.8,
+        "highlight": "Treehouse suites inside the cloud forest"
+      }
+    ]
   },
   {
     "id": "cusco-machu-picchu-pe",
     "name": "Cusco & Machu Picchu",
     "country": "Peru",
     "region": "South America",
-    "bestMonths": [4, 5, 6, 7, 8, 9, 10],
+    "bestMonths": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
     "budgetTier": "mid",
     "dailyCostUsd": 110,
-    "idealDays": { "min": 5, "max": 8 },
-    "tags": ["culture", "adventure", "nature"],
+    "idealDays": {
+      "min": 5,
+      "max": 8
+    },
+    "tags": [
+      "culture",
+      "adventure",
+      "nature"
+    ],
     "highlights": [
       "Sunrise at Machu Picchu",
       "Markets and ruins of the Sacred Valley",
       "Rainbow Mountain hike",
       "San Pedro Market in Cusco"
     ],
-    "notes": "Cusco is at about 3,400 m, so plan a day to acclimatize. Machu Picchu tickets and Inca Trail permits sell out."
+    "notes": "Cusco is at about 3,400 m, so plan a day to acclimatize. Machu Picchu tickets and Inca Trail permits sell out.",
+    "airportCode": "CUZ",
+    "stays": [
+      {
+        "id": "cusco-machu-picchu-pe-stay-1",
+        "name": "San Blas Artisan Inn",
+        "type": "guesthouse",
+        "tier": "budget",
+        "nightlyRateUsd": 60,
+        "rating": 4.5,
+        "highlight": "Hillside inn in the artists' quarter"
+      },
+      {
+        "id": "cusco-machu-picchu-pe-stay-2",
+        "name": "Sacred Valley Hacienda",
+        "type": "resort",
+        "tier": "luxury",
+        "nightlyRateUsd": 310,
+        "rating": 4.8,
+        "highlight": "Lower-altitude hacienda for gentle acclimatisation"
+      }
+    ]
   },
   {
     "id": "rio-de-janeiro-br",
     "name": "Rio de Janeiro",
     "country": "Brazil",
     "region": "South America",
-    "bestMonths": [2, 3, 4, 5, 9, 10],
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5,
+      9,
+      10
+    ],
     "budgetTier": "mid",
     "dailyCostUsd": 120,
-    "idealDays": { "min": 4, "max": 6 },
-    "tags": ["beach", "city", "nightlife", "nature"],
+    "idealDays": {
+      "min": 4,
+      "max": 6
+    },
+    "tags": [
+      "beach",
+      "city",
+      "nightlife",
+      "nature"
+    ],
     "highlights": [
       "Christ the Redeemer",
       "Cable car up Sugarloaf Mountain",
       "Copacabana and Ipanema beaches",
       "Samba nights in Lapa"
     ],
-    "notes": "Prices jump during Carnival (February or March). Keep valuables out of sight on the beach."
+    "notes": "Prices jump during Carnival (February or March). Keep valuables out of sight on the beach.",
+    "airportCode": "GIG",
+    "stays": [
+      {
+        "id": "rio-de-janeiro-br-stay-1",
+        "name": "Santa Teresa Hill House",
+        "type": "guesthouse",
+        "tier": "budget",
+        "nightlyRateUsd": 75,
+        "rating": 4.4,
+        "highlight": "Bohemian guesthouse above Lapa"
+      },
+      {
+        "id": "rio-de-janeiro-br-stay-2",
+        "name": "Ipanema Beachfront Hotel",
+        "type": "hotel",
+        "tier": "luxury",
+        "nightlyRateUsd": 290,
+        "rating": 4.7,
+        "highlight": "Rooftop pool overlooking Ipanema beach"
+      }
+    ]
   },
   {
     "id": "buenos-aires-ar",
     "name": "Buenos Aires",
     "country": "Argentina",
     "region": "South America",
-    "bestMonths": [3, 4, 5, 9, 10, 11],
+    "bestMonths": [
+      3,
+      4,
+      5,
+      9,
+      10,
+      11
+    ],
     "budgetTier": "budget",
     "dailyCostUsd": 80,
-    "idealDays": { "min": 3, "max": 5 },
-    "tags": ["city", "food", "nightlife", "culture"],
+    "idealDays": {
+      "min": 3,
+      "max": 5
+    },
+    "tags": [
+      "city",
+      "food",
+      "nightlife",
+      "culture"
+    ],
     "highlights": [
       "Tango in San Telmo",
       "Steak dinner at a parrilla",
       "Recoleta Cemetery",
       "Colorful streets of La Boca"
     ],
-    "notes": "Exchange rates can be volatile; compare paying by card versus cash before the trip."
+    "notes": "Exchange rates can be volatile; compare paying by card versus cash before the trip.",
+    "airportCode": "EZE",
+    "stays": [
+      {
+        "id": "buenos-aires-ar-stay-1",
+        "name": "San Telmo Tango House",
+        "type": "guesthouse",
+        "tier": "budget",
+        "nightlyRateUsd": 55,
+        "rating": 4.5,
+        "highlight": "Colonial house with Sunday-market views"
+      },
+      {
+        "id": "buenos-aires-ar-stay-2",
+        "name": "Recoleta Palace Hotel",
+        "type": "hotel",
+        "tier": "mid",
+        "nightlyRateUsd": 170,
+        "rating": 4.7,
+        "highlight": "French-style hotel near Recoleta Cemetery"
+      }
+    ]
   },
   {
     "id": "torres-del-paine-cl",
     "name": "Torres del Paine",
     "country": "Chile",
     "region": "South America",
-    "bestMonths": [1, 2, 3, 11, 12],
+    "bestMonths": [
+      1,
+      2,
+      3,
+      11,
+      12
+    ],
     "budgetTier": "mid",
     "dailyCostUsd": 200,
-    "idealDays": { "min": 5, "max": 9 },
-    "tags": ["nature", "adventure"],
+    "idealDays": {
+      "min": 5,
+      "max": 9
+    },
+    "tags": [
+      "nature",
+      "adventure"
+    ],
     "highlights": [
       "Hiking the W Trek",
       "Grey Glacier",
       "Sunrise at the Base of the Towers",
       "Guanacos and condors"
     ],
-    "notes": "Campsites and refugios must be booked in advance. Expect very strong winds."
+    "notes": "Campsites and refugios must be booked in advance. Expect very strong winds.",
+    "airportCode": "PUQ",
+    "stays": [
+      {
+        "id": "torres-del-paine-cl-stay-1",
+        "name": "Puerto Natales Trekkers Lodge",
+        "type": "hostel",
+        "tier": "budget",
+        "nightlyRateUsd": 90,
+        "rating": 4.4,
+        "highlight": "Gateway-town lodge with gear rental and transfers"
+      },
+      {
+        "id": "torres-del-paine-cl-stay-2",
+        "name": "Paine Massif Eco Domes",
+        "type": "resort",
+        "tier": "luxury",
+        "nightlyRateUsd": 480,
+        "rating": 4.8,
+        "highlight": "Geodesic domes facing the granite towers"
+      }
+    ]
   },
   {
     "id": "sydney-au",
     "name": "Sydney",
     "country": "Australia",
     "region": "Oceania",
-    "bestMonths": [3, 4, 5, 9, 10, 11],
+    "bestMonths": [
+      3,
+      4,
+      5,
+      9,
+      10,
+      11
+    ],
     "budgetTier": "mid",
     "dailyCostUsd": 200,
-    "idealDays": { "min": 4, "max": 6 },
-    "tags": ["city", "beach", "food", "family"],
+    "idealDays": {
+      "min": 4,
+      "max": 6
+    },
+    "tags": [
+      "city",
+      "beach",
+      "food",
+      "family"
+    ],
     "highlights": [
       "Sydney Opera House and the harbour",
       "Bondi to Coogee coastal walk",
       "Sydney Harbour Bridge climb",
       "Day trip to the Blue Mountains"
     ],
-    "notes": "Most visitors need an electronic visa before arrival. The sun is strong; swim between the flags."
+    "notes": "Most visitors need an electronic visa before arrival. The sun is strong; swim between the flags.",
+    "airportCode": "SYD",
+    "stays": [
+      {
+        "id": "sydney-au-stay-1",
+        "name": "Surry Hills Terrace Rooms",
+        "type": "guesthouse",
+        "tier": "mid",
+        "nightlyRateUsd": 170,
+        "rating": 4.5,
+        "highlight": "Victorian terrace near cafés and the city"
+      },
+      {
+        "id": "sydney-au-stay-2",
+        "name": "Harbour Bridge View Hotel",
+        "type": "hotel",
+        "tier": "luxury",
+        "nightlyRateUsd": 390,
+        "rating": 4.8,
+        "highlight": "Opera House and harbour views from every room"
+      }
+    ]
   },
   {
     "id": "queenstown-nz",
     "name": "Queenstown",
     "country": "New Zealand",
     "region": "Oceania",
-    "bestMonths": [1, 2, 3, 6, 7, 8, 12],
+    "bestMonths": [
+      1,
+      2,
+      3,
+      6,
+      7,
+      8,
+      12
+    ],
     "budgetTier": "mid",
     "dailyCostUsd": 190,
-    "idealDays": { "min": 5, "max": 8 },
-    "tags": ["adventure", "nature", "winter-sports", "romantic"],
+    "idealDays": {
+      "min": 5,
+      "max": 8
+    },
+    "tags": [
+      "adventure",
+      "nature",
+      "winter-sports",
+      "romantic"
+    ],
     "highlights": [
       "Bungee jumping at Kawarau Bridge",
       "Day trip to Milford Sound",
       "Skiing at The Remarkables",
       "Skyline gondola and luge"
     ],
-    "notes": "Most visitors need an electronic travel authority. The road to Milford Sound can close in bad weather."
+    "notes": "Most visitors need an electronic travel authority. The road to Milford Sound can close in bad weather.",
+    "airportCode": "ZQN",
+    "stays": [
+      {
+        "id": "queenstown-nz-stay-1",
+        "name": "Lakefront Backpackers Lodge",
+        "type": "hostel",
+        "tier": "budget",
+        "nightlyRateUsd": 95,
+        "rating": 4.4,
+        "highlight": "Lake views and an easy walk to the gondola"
+      },
+      {
+        "id": "queenstown-nz-stay-2",
+        "name": "Remarkables Alpine Lodge",
+        "type": "resort",
+        "tier": "luxury",
+        "nightlyRateUsd": 420,
+        "rating": 4.8,
+        "highlight": "Mountain lodge with a hot tub facing the Remarkables"
+      }
+    ]
   }
 ]

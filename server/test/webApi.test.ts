@@ -138,7 +138,7 @@ describe('web API', () => {
   it('confirms a proposal and 404s for an unknown one', async () => {
     const llm = new ScriptedLlm(
       toolReply({
-        name: 'propose_booking',
+        name: 'propose_trip',
         args: { destinationId: 'lisbon-pt', startDate: '2027-05-12', nights: 5, travelers: 2 },
       }),
       textReply('Confirm to book.'),

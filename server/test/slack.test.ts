@@ -17,6 +17,7 @@ import { loadConfig } from '../src/config.js';
 import { TripAssistant } from '../src/core/assistant.js';
 import { LlmError } from '../src/core/llm/types.js';
 import { InMemoryConversationStore } from '../src/core/store.js';
+import { sampleProposal } from './fixtures.js';
 import { ScriptedLlm, textReply, toolReply } from './scriptedLlm.js';
 
 const CHANNEL = 'D123';
@@ -136,7 +137,7 @@ describe('Slack handlers', () => {
   });
 
   it('confirms a proposal from the button, updates the card and posts the outcome once', async () => {
-    llm.then(toolReply({ name: 'propose_booking', args: LISBON_BOOKING }), textReply('Here is your stay.'));
+    llm.then(toolReply({ name: 'propose_trip', args: LISBON_BOOKING }), textReply('Here is your stay.'));
     await handlers.handleMessage(dm('Book Lisbon'), chat);
     const card = chat.sent.find((message) => message.kind === 'update');
     const value = findButtonValue(card?.blocks);
@@ -148,7 +149,7 @@ describe('Slack handlers', () => {
     const updatedCard = chat.lastUpdateOf(card?.ts ?? '');
     expect(findButtonValue(updatedCard?.blocks)).toBeUndefined();
     expect(JSON.stringify(updatedCard?.blocks)).toContain('Booked');
-    const outcomes = chat.sent.filter((message) => message.text.includes('Stay booked: Lisbon'));
+    const outcomes = chat.sent.filter((message) => message.text.includes('Trip booked: Lisbon'));
     expect(outcomes).toHaveLength(1);
     expect(outcomes[0]).toMatchObject({ kind: 'post', thread_ts: '100.001' });
     expect(store.getUser('slack:U1').bookings).toHaveLength(1);
@@ -156,9 +157,9 @@ describe('Slack handlers', () => {
 
   it('marks the old card as replaced when a new proposal is made in the thread', async () => {
     llm.then(
-      toolReply({ name: 'propose_booking', args: LISBON_BOOKING }),
+      toolReply({ name: 'propose_trip', args: LISBON_BOOKING }),
       textReply('5 nights proposed.'),
-      toolReply({ name: 'propose_booking', args: { ...LISBON_BOOKING, nights: 3 } }),
+      toolReply({ name: 'propose_trip', args: { ...LISBON_BOOKING, nights: 3 } }),
       textReply('3 nights proposed.'),
     );
     await handlers.handleMessage(dm('Book Lisbon'), chat);
@@ -170,7 +171,7 @@ describe('Slack handlers', () => {
   });
 
   it("does not let another Slack user confirm someone else's proposal", async () => {
-    llm.then(toolReply({ name: 'propose_booking', args: LISBON_BOOKING }), textReply('Here is your stay.'));
+    llm.then(toolReply({ name: 'propose_trip', args: LISBON_BOOKING }), textReply('Here is your stay.'));
     await handlers.handleMessage(dm('Book Lisbon'), chat);
     const value = findButtonValue(chat.sent.find((message) => message.kind === 'update')?.blocks);
 
@@ -210,18 +211,7 @@ describe('Slack formatting', () => {
         role: 'assistant',
         text: 'Here you go',
         createdAt: '',
-        proposal: {
-          id: 'p1',
-          destinationId: 'lisbon-pt',
-          destinationName: 'Lisbon',
-          country: 'Portugal',
-          startDate: '2027-05-12',
-          endDate: '2027-05-17',
-          nights: 5,
-          travelers: 2,
-          estimatedTotalUsd: 1400,
-          status: 'proposed',
-        },
+        proposal: sampleProposal(),
       },
       { conversationId: 'c', threadTs: 't' },
       { showThreadHint: false },

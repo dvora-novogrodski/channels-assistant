@@ -46,10 +46,11 @@ function describeOutcome(proposal: Proposal): string {
   }
   const travelers = `${proposal.travelers} traveler${proposal.travelers === 1 ? '' : 's'}`;
   const total = proposal.estimatedTotalUsd.toLocaleString('en-US');
+  const contents = proposal.flight ? `${proposal.flight.airline} flights + ${proposal.stay.name}` : proposal.stay.name;
   return (
-    `✅ Stay booked: ${proposal.destinationName}, ${proposal.country} · ${proposal.startDate} → ${proposal.endDate} · ` +
-    `${travelers} · ~$${total}. Reference ${proposal.bookingRef}. ` +
-    '(Simulated booking of the stay only: flights are not included and no payment was taken.)'
+    `✅ Trip booked: ${proposal.destinationName}, ${proposal.country} · ${proposal.startDate} → ${proposal.endDate} · ` +
+    `${travelers} · ${contents}. Paid $${total} with ${proposal.paymentMethod}. Reference ${proposal.bookingRef}. ` +
+    '(Demo booking: no real reservation or payment was made.)'
   );
 }
 

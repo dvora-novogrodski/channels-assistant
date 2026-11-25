@@ -27,11 +27,25 @@ export const TAGS = [
   'winter-sports',
 ] as const;
 
+export const STAY_TYPES = ['hostel', 'guesthouse', 'apartment', 'hotel', 'resort'] as const;
+
+export const StaySchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  type: z.enum(STAY_TYPES),
+  tier: z.enum(BUDGET_TIERS),
+  nightlyRateUsd: z.number().positive(), // per room, fictional sample property
+  rating: z.number().min(0).max(5),
+  highlight: z.string(),
+});
+
 export const DestinationSchema = z.object({
   id: z.string().regex(/^[a-z0-9-]+$/), // e.g. "lisbon-pt"
   name: z.string().min(1),
   country: z.string().min(1),
   region: z.enum(REGIONS),
+  airportCode: z.string().regex(/^[A-Z]{3}$/),
+  stays: z.array(StaySchema).min(1),
   // Months (1-12), not "summer": seasons flip between hemispheres.
   bestMonths: z.array(z.number().int().min(1).max(12)).min(1),
   budgetTier: z.enum(BUDGET_TIERS),
@@ -45,6 +59,8 @@ export const DestinationSchema = z.object({
 });
 
 export type Destination = z.infer<typeof DestinationSchema>;
+export type Stay = z.infer<typeof StaySchema>;
+export type StayType = (typeof STAY_TYPES)[number];
 export type Region = (typeof REGIONS)[number];
 export type BudgetTier = (typeof BUDGET_TIERS)[number];
 export type Tag = (typeof TAGS)[number];

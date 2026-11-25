@@ -3,11 +3,13 @@ import type { ChatMessage, ErrorKind, ProposalView, ResolveProposalResponse } fr
 import { NotFoundError } from './errors.js';
 import { LlmError, type Llm, type LlmMessage, type LlmReply } from './llm/types.js';
 import { applyDecision, parseDecision, type ProposalDecision } from './proposals.js';
-import type { Conversation, ConversationStore, Proposal, StoredMessage } from './store.js';
+import type { Conversation, ConversationStore, Proposal, StoredMessage, User, UserPreferences } from './store.js';
 import { executeToolCall, toolSpecs, type ToolContext, type ToolEffect } from './tools.js';
 
-export const MAX_TOOL_STEPS = 5;
-export const HISTORY_WINDOW = 20;
+export const MAX_TOOL_STEPS = 6;
+export const HISTORY_WINDOW = 24;
+export const MAX_QUICK_REPLIES = 3;
+export const MAX_QUICK_REPLY_LENGTH = 40;
 export const DEMO_FAILURE_TRIGGER = 'simulate failure';
 
 const ERROR_REPLIES: Record<ErrorKind, { text: string; retryable: boolean }> = {
@@ -120,9 +122,10 @@ export class TripAssistant {
 
     // Commit point: nothing from this turn is visible until every LLM call has succeeded.
     conversation.llmHistory = working;
-    const { proposal, superseded } = applyEffects(conversation, effects);
+    const { proposal, superseded } = applyEffects(conversation, context.user, effects);
     this.store.appendMessage(conversation, this.message('user', text));
-    const reply = this.message('assistant', finalReply.text ?? defaultReplyText(proposal), proposal?.id);
+    const { text: replyText, quickReplies } = extractQuickReplies(finalReply.text ?? defaultReplyText(proposal));
+    const reply = { ...this.message('assistant', replyText, proposal?.id), quickReplies };
     this.store.appendMessage(conversation, reply);
 
     return {
@@ -134,7 +137,7 @@ export class TripAssistant {
   private async runToolLoop(working: LlmMessage[], effects: ToolEffect[], context: ToolContext): Promise<LlmReply> {
     for (let step = 0; step < MAX_TOOL_STEPS; step++) {
       const reply = await this.llm.generate({
-        system: buildSystemPrompt(context.today),
+        system: buildSystemPrompt(context.today, context.user.preferences),
         messages: recentHistory(working),
         tools: toolSpecs,
       });
@@ -162,14 +165,31 @@ function findPendingProposal(conversation: Conversation): Proposal | undefined {
   return conversation.proposals.find(({ status }) => status === 'proposed');
 }
 
-function applyEffects(conversation: Conversation, effects: ToolEffect[]) {
-  const latest = effects.at(-1)?.proposal;
+function applyEffects(conversation: Conversation, user: User, effects: ToolEffect[]) {
+  for (const effect of effects) {
+    if (effect.type === 'savePreferences') user.preferences = { ...user.preferences, ...effect.preferences };
+  }
+
+  const latest = effects.flatMap((effect) => (effect.type === 'propose' ? [effect.proposal] : [])).at(-1);
   if (!latest) return {};
 
   const superseded = findPendingProposal(conversation);
   if (superseded) superseded.status = 'superseded';
   conversation.proposals.push(latest);
   return { proposal: latest, superseded };
+}
+
+// The model ends replies with "Quick replies: a | b | c"; the line is stripped from the text and shown as chips/buttons.
+export function extractQuickReplies(text: string): { text: string; quickReplies?: string[] } {
+  const match = text.match(/\n*\s*\**quick replies:?\**:?\s*(.+)\s*$/i);
+  if (!match?.[1]) return { text };
+
+  const quickReplies = match[1]
+    .split('|')
+    .map((option) => option.replace(/^["'\s*-]+|["'\s*]+$/g, '').trim())
+    .filter((option) => option.length > 0 && option.length <= MAX_QUICK_REPLY_LENGTH)
+    .slice(0, MAX_QUICK_REPLIES);
+  return { text: text.slice(0, match.index).trimEnd(), quickReplies: quickReplies.length ? quickReplies : undefined };
 }
 
 // The window must start at a user text message: Gemini rejects a history that opens with a tool result.
@@ -196,19 +216,36 @@ function withoutProposalId({ proposalId: _proposalId, ...message }: StoredMessag
   return message;
 }
 
-function buildSystemPrompt(today: string): string {
+function describePreferences(preferences: UserPreferences): string {
+  const known = [
+    preferences.homeAirport && `home airport ${preferences.homeAirport}`,
+    preferences.travelers && `usually ${preferences.travelers} traveler(s)`,
+    preferences.budgetTier && `${preferences.budgetTier} budget`,
+    preferences.interests?.length && `likes ${preferences.interests.join(', ')}`,
+  ].filter(Boolean);
+  return known.length ? `Known about this user: ${known.join('; ')}. Use these as defaults.` : 'No saved preferences yet.';
+}
+
+function buildSystemPrompt(today: string, preferences: UserPreferences): string {
   return [
-    'You are Travel Assistant, a friendly, concise travel assistant.',
-    `Today is ${today}. Turn relative dates ("this week", "next month", "in spring") into concrete dates or months based on today.`,
-    'Only recommend destinations returned by your tools. Never invent destinations, prices, or availability.',
-    'Use search_destinations to find options; translate seasons into months (remember seasons are reversed in the southern hemisphere).',
-    'For "cheapest" or "budget" requests, call search_destinations with sortBy "price" instead of guessing.',
-    'Use get_destination before describing a destination in detail.',
-    'You book the STAY only (accommodation plus an estimate of daily costs). You cannot search or book flights, trains, or cars; say so plainly and suggest using a flight search site.',
-    'When the user wants to book, call propose_booking. It does NOT book anything: tell the user it covers the stay only (no flights) and to confirm with the button or by replying "confirm".',
-    'Never say a trip is booked unless list_bookings shows it.',
-    'If the dates, number of nights, or number of travelers are missing, ask one short question before proposing.',
-    'If a tool returns an error, fix the arguments or explain the problem to the user.',
-    'Keep replies under 120 words, in plain text with simple dash lists. Mention prices as rough estimates in USD.',
+    'You are Travel Assistant: a warm, knowledgeable travel planner who helps people choose a destination and books trip packages (demo flight + stay) for them.',
+    `Today is ${today}. Turn relative dates ("this week", "next month", "in spring") into concrete dates based on today.`,
+    describePreferences(preferences),
+    '',
+    'Freedom: answer general travel questions from your own knowledge (itineraries, what to pack, food, culture, typical weather, getting around, safety tips). For visas and entry rules, give a short reminder to check official sources.',
+    'Grounding: anything bookable comes only from tools. Destinations you can book, stays, flights and every price must come from tool results; never invent them. If a place is not in the catalog, say you cannot book it yet and suggest similar catalog destinations.',
+    '',
+    'Tools:',
+    '- search_destinations to find options (use month for seasons, remember the southern hemisphere; sortBy "price" for cheapest).',
+    '- get_destination before describing a place in detail or choosing a stay; it lists stays with their ids.',
+    '- search_flights needs the user\'s departure airport (3-letter code). Flights are demo offers: say so, and always include the compareUrl as a Markdown link like [Compare real prices](url).',
+    '- propose_trip once destination, start date, nights and travelers are known (use saved preferences as defaults). Include the flight when you know the departure airport and the user wants one.',
+    '- save_preferences when the user mentions their home city/airport, usual group size, budget style or interests.',
+    '',
+    'Booking and payment: propose_trip does NOT book. The card it creates shows the total and the demo card on file (Visa •••• 4242); the user confirms with the button or by replying "confirm". Never ask for card details; if the user offers them, tell them not to share card details and that the demo card on file is used. Never say a trip is booked unless list_bookings shows it.',
+    'If a tool returns an error, fix the arguments or explain the problem. If key details are missing, ask one short question.',
+    '',
+    'Style: friendly and specific, like a good travel agent. Use short paragraphs and bullet lists, bold destination names, prices as rough USD estimates. Aim for under 160 words unless the user asks for an itinerary or more detail.',
+    `End every reply with one last line in exactly this format, with 2-3 short follow-ups the user might send next (max ${MAX_QUICK_REPLY_LENGTH} characters each): Quick replies: option one | option two | option three`,
   ].join('\n');
 }
