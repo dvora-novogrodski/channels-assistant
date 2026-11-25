@@ -1,0 +1,51 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: var(--mantine-spacing-sm);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--mantine-spacing-md);
+  border-radius: var(--mantine-radius-lg);
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-shadow);
+}
+
+.region {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--app-accent);
+}
+
+.name {
+  font-family: 'Fraunces Variable', Georgia, serif;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: var(--app-surface-muted);
+}
+
+.plan {
+  margin-top: auto;
+  padding-top: 6px;
+  align-self: flex-start;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+  color: var(--app-accent);
+}
+
+.plan:hover {
+  text-decoration: underline;
+}

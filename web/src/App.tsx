@@ -32,11 +32,9 @@ export function App() {
           <Group gap="sm" wrap="nowrap">
             <Burger opened={isNavbarOpen} onClick={toggleNavbar} hiddenFrom="sm" size="sm" aria-label="Toggle chats" />
             <div className={classes.brandMark}>
-              <IconPlaneTilt size={17} stroke={1.6} />
+              <IconPlaneTilt size={17} stroke={1.8} />
             </div>
-            <Text fw={650} fz="md">
-              Travel Assistant
-            </Text>
+            <Text className={classes.wordmark}>Travel Assistant</Text>
             <Text fz="xs" c="dimmed" visibleFrom="sm">
               Destinations, demo flights and stays
             </Text>

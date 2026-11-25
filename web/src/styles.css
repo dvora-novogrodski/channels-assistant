@@ -1,21 +1,29 @@
 :root,
 :root[data-mantine-color-scheme='light'] {
-  --app-background: #fafaf9;
+  --app-background: #faf8f5;
   --app-surface: #ffffff;
-  --app-surface-muted: #f2f1ef;
-  --app-border: #e7e5e4;
-  --app-shadow: 0 1px 2px rgb(28 25 23 / 6%);
+  --app-surface-muted: #f3efe9;
+  --app-border: #e8e2d9;
+  --app-shadow: 0 1px 2px rgb(60 40 20 / 6%), 0 4px 16px rgb(60 40 20 / 4%);
+  --app-accent: var(--mantine-color-clay-7);
+  --app-accent-soft: var(--mantine-color-clay-0);
 }
 
 :root[data-mantine-color-scheme='dark'] {
-  --app-background: #141414;
-  --app-surface: #1c1c1c;
-  --app-surface-muted: #262626;
-  --app-border: #303030;
+  --app-background: #151311;
+  --app-surface: #1e1b18;
+  --app-surface-muted: #28241f;
+  --app-border: #35302a;
   --app-shadow: 0 1px 2px rgb(0 0 0 / 40%);
+  --app-accent: var(--mantine-color-clay-4);
+  --app-accent-soft: rgb(219 114 56 / 14%);
 }
 
 body {
   background: var(--app-background);
   -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--app-accent);
 }

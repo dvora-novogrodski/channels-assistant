@@ -45,6 +45,17 @@ export interface ProposalView {
   bookingRef?: string; // e.g. "TRV-4821", only when confirmed
 }
 
+export interface DestinationCardView {
+  id: string;
+  name: string;
+  country: string;
+  region: string;
+  budgetTier: string;
+  dailyCostUsd: number;
+  bestMonths: number[];
+  tags: string[];
+}
+
 /** Why a turn failed. Drives the message the user sees and whether Retry makes sense. */
 export type ErrorKind = 'rate_limit' | 'unavailable' | 'blocked' | 'busy' | 'internal';
 
@@ -55,6 +66,7 @@ export interface ChatMessage {
   createdAt: string; // ISO timestamp
   proposal?: ProposalView; // present when this reply carries a booking card
   quickReplies?: string[]; // short follow-ups the user can send with one tap
+  destinations?: DestinationCardView[]; // places found by the last search in this turn, shown as cards
   error?: { kind: ErrorKind; retryable: boolean }; // present when the turn failed
 }
 

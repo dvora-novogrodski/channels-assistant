@@ -1,4 +1,5 @@
 import '@fontsource-variable/dm-sans';
+import '@fontsource-variable/fraunces';
 import '@mantine/core/styles.css';
 import './styles.css';
 import { StrictMode } from 'react';

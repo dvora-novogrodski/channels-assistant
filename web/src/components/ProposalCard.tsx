@@ -7,7 +7,7 @@ import { formatTripDate, formatUsd } from '../formatTrip.util';
 import classes from './ProposalCard.module.css';
 
 const STATUS_BADGES: Record<ProposalStatus, { label: string; color: string }> = {
-  proposed: { label: 'Ready to book', color: 'blue' },
+  proposed: { label: 'Ready to book', color: 'clay' },
   confirmed: { label: 'Booked', color: 'teal' },
   cancelled: { label: 'Cancelled', color: 'gray' },
   superseded: { label: 'Replaced', color: 'gray' },
@@ -40,20 +40,44 @@ export function ProposalCard({ proposal, onDecision }: ProposalCardProps) {
 
   return (
     <div className={`${classes.card} ${isInactive ? classes.inactive : ''}`} aria-label="Trip proposal">
-      <Group className={classes.header} justify="space-between" align="flex-start" wrap="nowrap">
-        <div>
-          <Text fw={650} fz="lg">
-            {proposal.destinationName}, {proposal.country}
-          </Text>
-          <Text fz="sm" c="dimmed">
-            {formatTripDate(proposal.startDate)} – {formatTripDate(proposal.endDate)} · {proposal.nights} nights ·{' '}
-            {proposal.travelers} {proposal.travelers === 1 ? 'traveler' : 'travelers'}
-          </Text>
+      <div className={classes.header}>
+        <Group justify="space-between" align="center" wrap="nowrap">
+          <span className={classes.eyebrow}>{proposal.flight ? 'Trip package' : 'Stay'}</span>
+          <Badge color={badge.color} variant="light" radius="sm">
+            {badge.label}
+          </Badge>
+        </Group>
+
+        {proposal.flight && (
+          <Group justify="space-between" align="center" wrap="nowrap" mt="md" mb="md">
+            <div>
+              <div className={classes.code}>{proposal.flight.originAirport}</div>
+              <Text fz="xs" c="dimmed" mt={4}>
+                {formatTripDate(proposal.startDate)}
+              </Text>
+            </div>
+            <div className={classes.route}>
+              <IconPlane size={18} className={classes.routePlane} />
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div className={classes.code}>{proposal.flight.destinationAirport}</div>
+              <Text fz="xs" c="dimmed" mt={4}>
+                {formatTripDate(proposal.endDate)}
+              </Text>
+            </div>
+          </Group>
+        )}
+
+        <div className={classes.destination} style={{ marginTop: proposal.flight ? 0 : 8 }}>
+          {proposal.destinationName}, {proposal.country}
         </div>
-        <Badge color={badge.color} variant="light" radius="sm" style={{ flexShrink: 0 }}>
-          {badge.label}
-        </Badge>
-      </Group>
+        <Text fz="sm" c="dimmed" mt={2}>
+          {formatTripDate(proposal.startDate)} – {formatTripDate(proposal.endDate)} · {proposal.nights} nights ·{' '}
+          {proposal.travelers} {proposal.travelers === 1 ? 'traveler' : 'travelers'}
+        </Text>
+      </div>
+
+      <div className={classes.perforation} aria-hidden />
 
       <Stack className={classes.section} gap="md">
         <FlightLine proposal={proposal} />
@@ -100,6 +124,7 @@ export function ProposalCard({ proposal, onDecision }: ProposalCardProps) {
             <Button
               fullWidth
               size="md"
+              color="clay"
               loading={pendingDecision === 'confirm'}
               disabled={pendingDecision === 'cancel'}
               onClick={() => decide('confirm')}

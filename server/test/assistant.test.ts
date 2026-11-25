@@ -234,3 +234,29 @@ describe('extractQuickReplies', () => {
     expect(extractQuickReplies('Just text')).toEqual({ text: 'Just text' });
   });
 });
+
+describe('suggested destinations', () => {
+  it('attaches the last search results to the reply as cards', async () => {
+    const store = new InMemoryConversationStore();
+    const conversation = store.createConversation(ALICE);
+    const llm = new ScriptedLlm(
+      toolReply({ name: 'search_destinations', args: { region: 'Oceania' } }),
+      textReply('Two great options down under.'),
+    );
+
+    const { reply } = await new TripAssistant({ store, llm, now: () => TODAY }).handleMessage(ALICE, conversation.id, 'Oceania?');
+
+    expect(reply.destinations?.map(({ id }) => id).sort()).toEqual(['queenstown-nz', 'sydney-au']);
+    expect(store.listMessages(ALICE, conversation.id).at(-1)?.destinations).toHaveLength(2);
+  });
+
+  it('shows no cards when the turn made no search', async () => {
+    const store = new InMemoryConversationStore();
+    const conversation = store.createConversation(ALICE);
+    const llm = new ScriptedLlm(textReply('Pack layers.'));
+
+    const { reply } = await new TripAssistant({ store, llm, now: () => TODAY }).handleMessage(ALICE, conversation.id, 'Packing tips?');
+
+    expect(reply.destinations).toBeUndefined();
+  });
+});

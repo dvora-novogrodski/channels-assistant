@@ -3,6 +3,7 @@ import { IconAlertTriangle, IconClockPause, IconPlaneTilt, IconRefresh, IconWifi
 import Markdown, { type Components } from 'react-markdown';
 import type { ProposalDecision } from '../chatApi';
 import type { UiErrorKind, UiMessage } from '../useChat';
+import { DestinationCards } from './DestinationCards';
 import { ProposalCard } from './ProposalCard';
 import classes from './MessageBubble.module.css';
 
@@ -22,6 +23,7 @@ const MARKDOWN_COMPONENTS: Components = {
 interface MessageBubbleProps {
   message: UiMessage;
   onRetry: (messageId: string) => void;
+  onSend: (text: string) => void;
   onResolveProposal: (proposalId: string, decision: ProposalDecision) => Promise<void>;
 }
 
@@ -33,7 +35,7 @@ export function AssistantAvatar() {
   );
 }
 
-export function MessageBubble({ message, onRetry, onResolveProposal }: MessageBubbleProps) {
+export function MessageBubble({ message, onRetry, onSend, onResolveProposal }: MessageBubbleProps) {
   if (message.error) return <ErrorMessage message={message} onRetry={onRetry} />;
   if (message.role === 'user') return <UserMessage text={message.text} />;
 
@@ -45,6 +47,7 @@ export function MessageBubble({ message, onRetry, onResolveProposal }: MessageBu
         <Typography className={classes.markdown}>
           <Markdown components={MARKDOWN_COMPONENTS}>{message.text}</Markdown>
         </Typography>
+        {message.destinations && <DestinationCards destinations={message.destinations} onPlan={onSend} />}
         {proposal && (
           <ProposalCard proposal={proposal} onDecision={(decision) => onResolveProposal(proposal.id, decision)} />
         )}

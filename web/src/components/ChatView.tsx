@@ -54,6 +54,7 @@ export function ChatView({ messages, status, isSending, onSend, onRetry, onReloa
                   key={message.id}
                   message={message}
                   onRetry={onRetry}
+                  onSend={onSend}
                   onResolveProposal={onResolveProposal}
                 />
               ))}

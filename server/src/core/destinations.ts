@@ -22,7 +22,7 @@ export interface DestinationFilters {
 
 export type DestinationSummary = Pick<
   Destination,
-  'id' | 'name' | 'country' | 'region' | 'budgetTier' | 'dailyCostUsd' | 'idealDays' | 'tags'
+  'id' | 'name' | 'country' | 'region' | 'budgetTier' | 'dailyCostUsd' | 'idealDays' | 'tags' | 'bestMonths'
 >;
 
 export interface DestinationSearchResult {
@@ -77,6 +77,6 @@ function countMatchingTags(destination: Destination, tags: Tag[] = []): number {
 }
 
 function toSummary(destination: Destination): DestinationSummary {
-  const { id, name, country, region, budgetTier, dailyCostUsd, idealDays, tags } = destination;
-  return { id, name, country, region, budgetTier, dailyCostUsd, idealDays, tags };
+  const { id, name, country, region, budgetTier, dailyCostUsd, idealDays, tags, bestMonths } = destination;
+  return { id, name, country, region, budgetTier, dailyCostUsd, idealDays, tags, bestMonths };
 }

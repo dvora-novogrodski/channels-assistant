@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import type { ChatMessage, ErrorKind, ProposalView, ResolveProposalResponse } from '@app/shared';
+import { z } from 'zod';
+import type { ChatMessage, DestinationCardView, ErrorKind, ProposalView, ResolveProposalResponse } from '@app/shared';
 import { NotFoundError } from './errors.js';
 import { LlmError, type Llm, type LlmMessage, type LlmReply } from './llm/types.js';
 import { applyDecision, parseDecision, type ProposalDecision } from './proposals.js';
@@ -116,6 +117,7 @@ export class TripAssistant {
       today: this.now().toISOString().slice(0, 10),
     };
     const working: LlmMessage[] = [...conversation.llmHistory, { role: 'user', text }];
+    const turnStart = working.length;
     const effects: ToolEffect[] = [];
 
     const finalReply = await this.runToolLoop(working, effects, context);
@@ -125,7 +127,8 @@ export class TripAssistant {
     const { proposal, superseded } = applyEffects(conversation, context.user, effects);
     this.store.appendMessage(conversation, this.message('user', text));
     const { text: replyText, quickReplies } = extractQuickReplies(finalReply.text ?? defaultReplyText(proposal));
-    const reply = { ...this.message('assistant', replyText, proposal?.id), quickReplies };
+    const destinations = proposal ? undefined : findSuggestedDestinations(working.slice(turnStart));
+    const reply = { ...this.message('assistant', replyText, proposal?.id), quickReplies, destinations };
     this.store.appendMessage(conversation, reply);
 
     return {
@@ -177,6 +180,30 @@ function applyEffects(conversation: Conversation, user: User, effects: ToolEffec
   if (superseded) superseded.status = 'superseded';
   conversation.proposals.push(latest);
   return { proposal: latest, superseded };
+}
+
+const SearchOutputSchema = z.object({
+  results: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      country: z.string(),
+      region: z.string(),
+      budgetTier: z.string(),
+      dailyCostUsd: z.number(),
+      bestMonths: z.array(z.number()),
+      tags: z.array(z.string()),
+    }),
+  ),
+});
+
+export function findSuggestedDestinations(turnMessages: LlmMessage[]): DestinationCardView[] | undefined {
+  const searchResults = turnMessages
+    .flatMap((message) => (message.role === 'tool' ? message.results : []))
+    .filter(({ name, isError }) => name === 'search_destinations' && !isError);
+  const parsed = SearchOutputSchema.safeParse(searchResults.at(-1)?.output);
+  if (!parsed.success || parsed.data.results.length === 0) return undefined;
+  return parsed.data.results;
 }
 
 // The model ends replies with "Quick replies: a | b | c"; the line is stripped from the text and shown as chips/buttons.
@@ -236,7 +263,7 @@ function buildSystemPrompt(today: string, preferences: UserPreferences): string 
     'Grounding: anything bookable comes only from tools. Destinations you can book, stays, flights and every price must come from tool results; never invent them. If a place is not in the catalog, say you cannot book it yet and suggest similar catalog destinations.',
     '',
     'Tools:',
-    '- search_destinations to find options (use month for seasons, remember the southern hemisphere; sortBy "price" for cheapest).',
+    '- search_destinations to find options (use month for seasons, remember the southern hemisphere; sortBy "price" for cheapest). The app shows the search results as cards with name, price per day and tags, so do not repeat those details: write a short intro and your personal recommendation of one or two places and why.',
     '- get_destination before describing a place in detail or choosing a stay; it lists stays with their ids.',
     '- search_flights needs the user\'s departure airport (3-letter code). Flights are demo offers: say so, and always include the compareUrl as a Markdown link like [Compare real prices](url).',
     '- propose_trip once destination, start date, nights and travelers are known (use saved preferences as defaults). Include the flight when you know the departure airport and the user wants one.',

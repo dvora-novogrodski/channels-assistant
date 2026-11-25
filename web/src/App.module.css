@@ -16,7 +16,14 @@
   place-items: center;
   width: 32px;
   height: 32px;
-  border-radius: var(--mantine-radius-md);
-  border: 1px solid var(--app-border);
-  background: var(--app-surface-muted);
+  border-radius: 50%;
+  color: var(--mantine-color-white);
+  background: var(--app-accent);
+}
+
+.wordmark {
+  font-family: 'Fraunces Variable', Georgia, serif;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
