@@ -83,7 +83,7 @@ docs/              Decision log, Slack setup, deployment
 
 The full decision log is in [docs/decisions.md](docs/decisions.md). The most important ones:
 
-**Slack as one flat chat with "New trip".** Slack is free (no SMS verification), familiar to reviewers, and Socket Mode needs no public webhook. The DM works like messaging a person: every message continues the current trip, and replies appear in the main chat. **New trip** (button or text) starts a fresh conversation. I first used one thread per conversation, but replies hidden in threads were clunky and a follow-up typed outside the thread silently started a new chat.
+**Slack as one flat chat with "New trip".** Slack is free (no SMS verification), familiar to reviewers, and Socket Mode needs no public webhook. The DM works like messaging a person: every message continues the current trip, and replies appear in the main chat. **New trip** (button or text) starts a fresh conversation. I first used one thread per conversation, but replies hidden in threads were clunky and a follow-up typed outside the thread silently started a new chat. The trade-off: threads let you go back to any earlier trip, while the flat chat only continues the current one (see [improvements](#what-i-would-improve-with-more-time)).
 
 **Users and conversations are separate.** Bookings and preferences belong to the user (`web:<uuid>` or `slack:<user id>`); LLM history belongs to the conversation. Every read checks ownership, and "missing" and "not yours" return the same 404.
 
@@ -140,14 +140,14 @@ Production-style: `npm run build`, then `npm start`. This serves the built web a
 - **No authentication.** A web user is a random id in `localStorage`, so another browser is a new user. Web and Slack identities are not linked.
 - **Time zones.** Flight arrival times and calendar events use the departure time zone.
 - **Free tiers.** Gemini can be slow or briefly unavailable (the app retries, then shows a retryable error). Render's free instance may restart and needs an uptime ping to stay awake.
-- **Slack.** The current trip per DM is kept in memory, so a restart starts a new conversation and old buttons answer "no longer available". The invite link expires after 30 days.
+- **Slack.** After **New trip**, an earlier trip can't be continued from Slack; only the current trip is active. The current trip per DM is kept in memory, so a restart starts a new conversation and old buttons answer "no longer available". The invite link expires after 30 days.
 - **Overlapping messages** in one conversation are rejected rather than queued.
 
 ## What I would improve with more time
 
-1. **Persistence:** SQLite or Postgres behind the existing `ConversationStore` interface, which removes most of the limitations above.
-2. **Conversation handoff:** link a web user and a Slack user with a one-time code, so a trip can continue across channels.
-3. **Real inventory:** real flight and hotel APIs behind the same tool interfaces, with time-zone-aware schedules.
+1. **Real data, saved in a database.** Replace the sample catalog and generated flights, stays and tickets with real travel data from flight and hotel providers, behind the same tool interfaces and with time-zone-aware schedules. Save users, conversations, preferences and bookings in a database, so nothing is lost on a restart and the service can run on more than one instance. The store already saves each turn or decision in a single `commit`, which maps to one database transaction.
+2. **Real users.** Sign-in instead of a random browser id, so the same person sees their trips on any device. Link a web account and a Slack user, so a trip started in one channel can continue in the other.
+3. **Return to an earlier Slack trip.** Today **New trip** starts a fresh conversation, and the earlier trip can no longer be continued from Slack. That is what threads did well: each trip kept its own place. A **My trips** list with a **Continue** button per trip (or one thread per trip, opened from that list) would let the user switch back to any earlier conversation without losing the simple flat chat.
 4. **Streaming:** stream answers and tool progress to the web UI, with a cancel button.
 5. **Interruptions:** let a new message cancel or amend the running turn instead of "still working".
 6. **Quality and operations:** an eval set for tool choice and answers, a paid LLM tier or provider failover, per-user rate limits, structured logs.

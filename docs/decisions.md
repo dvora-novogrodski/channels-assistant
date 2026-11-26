@@ -62,7 +62,7 @@ Each entry: **decision** — why — alternatives considered — where.
 ### Slack
 
 - **Socket Mode.** No public URL or request signing; works from a laptop and from Render. *Where:* `slack.bot.ts`.
-- **Flat DM with "New trip" instead of threads.** Threads hid replies and a follow-up outside the thread silently started a new chat. *Trade-off:* old trips are separated only by the "New trip" marker. *Where:* `slack.handlers.ts` (`currentSessions`).
+- **Flat DM with "New trip" instead of threads.** Threads hid replies and a follow-up outside the thread silently started a new chat. *Trade-off:* old trips are separated only by the "New trip" marker, and an earlier trip cannot be continued from Slack (listed as an improvement). *Where:* `slack.handlers.ts` (`currentSessions`).
 - **Non-rotating app token.** Rotating tokens expire every 12 h and need single-use refresh tokens that a free instance cannot persist. *Where:* `slack-app-manifest.yml`, `config.ts`.
 
 ### Web
