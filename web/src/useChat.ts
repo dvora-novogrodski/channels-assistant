@@ -49,6 +49,7 @@ export function useChat() {
   const [bookings, setBookings] = useState<BookingView[]>([]);
 
   const activeConversationRef = useRef<string | null>(null);
+  const isSendingRef = useRef(false);
 
   const activate = useCallback((conversationId: string | null) => {
     activeConversationRef.current = conversationId;
@@ -122,13 +123,15 @@ export function useChat() {
 
   const sendMessage = useCallback(
     async (text: string, replacedMessageIds: string[] = []) => {
-      if (isSending) return;
+      if (isSendingRef.current) return;
+      isSendingRef.current = true;
+      setIsSending(true);
+
       const startedIn = activeConversationRef.current;
       const userMessage = localMessage('user', text);
       const retry = { text, userMessageId: userMessage.id };
       let conversationId = startedIn;
 
-      setIsSending(true);
       setMessages((previous) => [...previous.filter(({ id }) => !replacedMessageIds.includes(id)), userMessage]);
       try {
         conversationId = startedIn ?? (await createConversationFor());
@@ -142,10 +145,11 @@ export function useChat() {
         const failure = { ...localMessage('assistant', describeError(error), { kind: 'network', retryable: true }), retry };
         setMessages((previous) => [...previous, failure]);
       } finally {
+        isSendingRef.current = false;
         setIsSending(false);
       }
     },
-    [isSending, createConversationFor, refreshConversations],
+    [createConversationFor, refreshConversations],
   );
 
   const retryMessage = useCallback(
