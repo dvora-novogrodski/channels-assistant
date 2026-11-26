@@ -9,6 +9,10 @@ export function formatCount(count: number, singular: string, plural = `${singula
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
+export function formatStops(stops: number): string {
+  return stops === 0 ? 'Direct' : formatCount(stops, 'stop');
+}
+
 export function formatMonths(months: number[]): string {
   const names = [...months].sort((a, b) => a - b).map((month) => MONTH_NAMES[month - 1] ?? '');
   if (names.length <= MAX_LISTED_MONTHS) return names.join(', ');

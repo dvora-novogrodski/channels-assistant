@@ -1,9 +1,17 @@
-import { App, LogLevel, type BlockAction, type ButtonAction, type webApi } from '@slack/bolt';
+import {
+  App,
+  LogLevel,
+  type AllMiddlewareArgs,
+  type BlockAction,
+  type ButtonAction,
+  type SlackActionMiddlewareArgs,
+  type webApi,
+} from '@slack/bolt';
 import type { ProposalDecision } from '@app/shared';
 import type { TripAssistant } from '../core/assistant.js';
 import type { ConversationStore } from '../core/store.js';
 import { CANCEL_ACTION_ID, CONFIRM_ACTION_ID, NEW_TRIP_ACTION_ID, QUICK_REPLY_ACTION_PREFIX } from './slack.blocks.js';
-import { createSlackHandlers, type SlackChat } from './slack.handlers.js';
+import { createSlackHandlers, type SlackActionClick, type SlackChat } from './slack.handlers.js';
 
 interface SlackBotSettings {
   botToken: string;
@@ -11,6 +19,9 @@ interface SlackBotSettings {
   store: ConversationStore;
   assistant: TripAssistant;
 }
+
+type ButtonActionArgs = SlackActionMiddlewareArgs<BlockAction<ButtonAction>> & AllMiddlewareArgs;
+type ButtonClickHandler = (click: SlackActionClick, chat: SlackChat) => Promise<void>;
 
 const BUTTON_DECISIONS: Array<[actionId: string, decision: ProposalDecision]> = [
   [CONFIRM_ACTION_ID, 'confirm'],
@@ -24,51 +35,42 @@ function toSlackChat(client: webApi.WebClient): SlackChat {
   };
 }
 
+function onButtonClick(handle: ButtonClickHandler) {
+  return async ({ ack, body, action, client }: ButtonActionArgs) => {
+    await ack();
+    const channel = body.channel?.id;
+    if (!channel) return;
+    const click = { userId: body.user.id, channel, actionTs: action.action_ts, value: action.value };
+    await handle(click, toSlackChat(client));
+  };
+}
+
 export async function startSlackBot({ botToken, appToken, store, assistant }: SlackBotSettings): Promise<App> {
   const app = new App({ token: botToken, appToken, socketMode: true, logLevel: LogLevel.WARN });
   const handlers = createSlackHandlers({ store, assistant });
 
   app.message(async ({ message, client }) => {
     if (message.subtype !== undefined) return;
-    await handlers.handleMessage(
-      {
-        channel: message.channel,
-        channelType: message.channel_type,
-        ts: message.ts,
-        threadTs: message.thread_ts,
-        user: message.user,
-        text: message.text,
-        botId: message.bot_id,
-      },
-      toSlackChat(client),
-    );
+    const incoming = {
+      channel: message.channel,
+      channelType: message.channel_type,
+      ts: message.ts,
+      threadTs: message.thread_ts,
+      user: message.user,
+      text: message.text,
+      botId: message.bot_id,
+    };
+    await handlers.handleMessage(incoming, toSlackChat(client));
   });
 
   for (const [actionId, decision] of BUTTON_DECISIONS) {
-    app.action<BlockAction<ButtonAction>>(actionId, async ({ ack, body, action, client }) => {
-      await ack();
-      const channel = body.channel?.id;
-      if (!channel) return;
-      await handlers.handleButtonClick({ userId: body.user.id, channel, decision, value: action.value }, toSlackChat(client));
-    });
-  }
-
-  app.action<BlockAction<ButtonAction>>(new RegExp(`^${QUICK_REPLY_ACTION_PREFIX}`), async ({ ack, body, action, client }) => {
-    await ack();
-    const channel = body.channel?.id;
-    if (!channel) return;
-    await handlers.handleQuickReply(
-      { userId: body.user.id, channel, actionTs: action.action_ts, value: action.value },
-      toSlackChat(client),
+    app.action<BlockAction<ButtonAction>>(
+      actionId,
+      onButtonClick((click, chat) => handlers.handleButtonClick({ ...click, decision }, chat)),
     );
-  });
-
-  app.action<BlockAction<ButtonAction>>(NEW_TRIP_ACTION_ID, async ({ ack, body, action, client }) => {
-    await ack();
-    const channel = body.channel?.id;
-    if (!channel) return;
-    await handlers.handleNewTrip({ userId: body.user.id, channel, actionTs: action.action_ts }, toSlackChat(client));
-  });
+  }
+  app.action<BlockAction<ButtonAction>>(new RegExp(`^${QUICK_REPLY_ACTION_PREFIX}`), onButtonClick(handlers.handleQuickReply));
+  app.action<BlockAction<ButtonAction>>(NEW_TRIP_ACTION_ID, onButtonClick(handlers.handleNewTrip));
 
   app.error(async (error) => {
     console.error('Slack app error', error);

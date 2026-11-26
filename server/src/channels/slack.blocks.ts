@@ -4,12 +4,16 @@ import {
   BOOKING_STEPS,
   formatCount,
   formatMonths,
+  formatStops,
   formatUsd,
   type ChatMessage,
   type DestinationCardView,
   type FlightLeg,
+  type FlightTickets,
+  type ProposalFlight,
   type ProposalStatus,
   type ProposalView,
+  type TripTickets,
 } from '@app/shared';
 
 export const CONFIRM_ACTION_ID = 'proposal_confirm';
@@ -19,13 +23,23 @@ export const QUICK_REPLY_ACTION_PREFIX = 'quick_reply_';
 
 export const SESSION_HINT = 'Tip: everything stays in this chat. Type *new trip* or press *New trip* to start fresh.';
 const MAX_DESTINATION_CARDS = 5;
+const MAX_DESTINATION_TAGS = 3;
 const MAX_SECTION_TEXT = 2900;
+const PARAGRAPH_BREAK = '\n\n';
+const NEW_TRIP_SUGGESTIONS = ['Somewhere warm in February', 'A city break in Europe', 'Surprise me'];
 
 const STATUS_LINES: Record<ProposalStatus, string> = {
   proposed: ':large_orange_circle: *Ready to book* · nothing is charged until you confirm',
   confirmed: ':white_check_mark: *Booked*',
   cancelled: ':x: *Cancelled*, nothing was booked',
   superseded: ':leftwards_arrow_with_hook: *Replaced by a newer proposal*',
+};
+
+const STATUS_SUMMARY_PREFIXES: Record<ProposalStatus, string> = {
+  proposed: 'Proposed trip',
+  confirmed: 'Booked trip',
+  cancelled: 'Cancelled trip',
+  superseded: 'Replaced trip proposal',
 };
 
 export const ProposalActionValueSchema = z.object({ conversationId: z.string(), proposalId: z.string() });
@@ -56,123 +70,50 @@ export function buildReplyContent(
   conversationId: string,
   options: { showSessionHint: boolean },
 ): SlackMessageContent {
-  const text = reply.error ? `:warning: ${reply.text}` : toSlackMrkdwn(reply.text);
-  const blocks: KnownBlock[] = buildTextSections(text);
-
-  if (reply.destinations?.length) blocks.push(...buildDestinationBlocks(reply.destinations));
-  if (reply.proposal) blocks.push(...buildProposalBlocks(reply.proposal, { conversationId, proposalId: reply.proposal.id }));
-  blocks.push(buildActionsBlock(reply.quickReplies ?? []));
-  if (options.showSessionHint) blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: SESSION_HINT }] });
-
-  return { text: reply.proposal ? `${text}\n\n${describeProposal(reply.proposal)}` : text, blocks };
+  const text = toReplyText(reply);
+  const blocks: KnownBlock[] = [
+    ...buildTextSections(text),
+    ...buildDestinationBlocks(reply.destinations ?? []),
+    ...buildReplyProposalBlocks(reply.proposal, conversationId),
+    buildActionsBlock(reply.quickReplies ?? []),
+    ...buildSessionHintBlocks(options.showSessionHint),
+  ];
+  return { text: withProposalSummary(text, reply.proposal), blocks };
 }
 
 export function buildBookingProgressContent(reply: ChatMessage, activeStep: number): SlackMessageContent {
-  const steps = BOOKING_STEPS.map((label, index) => {
-    if (index < activeStep) return `:white_check_mark: ${label}`;
-    if (index === activeStep) return `:hourglass_flowing_sand: *${label}…*`;
-    return `:white_small_square: ${label}`;
-  });
+  const steps = BOOKING_STEPS.map((label, index) => describeBookingStep(label, index, activeStep));
   return {
     text: 'Booking your trip…',
     blocks: [
       ...buildTextSections(toSlackMrkdwn(reply.text)),
       { type: 'divider' },
-      { type: 'section', text: { type: 'mrkdwn', text: `*Booking your trip*\n${steps.join('\n')}` } },
+      mrkdwnSection(`*Booking your trip*\n${steps.join('\n')}`),
     ],
   };
 }
 
 export function buildTextSections(text: string): KnownBlock[] {
-  const chunks: string[] = [];
-  let current = '';
-  for (const paragraph of text.split('\n\n')) {
-    const candidate = current ? `${current}\n\n${paragraph}` : paragraph;
-    if (candidate.length <= MAX_SECTION_TEXT) {
-      current = candidate;
-      continue;
-    }
-    if (current) chunks.push(current);
-    current = paragraph;
-    while (current.length > MAX_SECTION_TEXT) {
-      chunks.push(current.slice(0, MAX_SECTION_TEXT));
-      current = current.slice(MAX_SECTION_TEXT);
-    }
-  }
-  if (current) chunks.push(current);
-  return chunks.map((chunk) => ({ type: 'section', text: { type: 'mrkdwn', text: chunk } }));
+  return splitIntoSections(text).map(mrkdwnSection);
 }
 
 export function buildNewTripContent(): SlackMessageContent {
   const text = ':luggage: *New trip started.* Where would you like to go?';
-  return {
-    text,
-    blocks: [
-      { type: 'section', text: { type: 'mrkdwn', text } },
-      buildActionsBlock(['Somewhere warm in February', 'A city break in Europe', 'Surprise me']),
-    ],
-  };
+  return { text, blocks: [mrkdwnSection(text), buildActionsBlock(NEW_TRIP_SUGGESTIONS)] };
 }
 
 export function buildProposalBlocks(proposal: ProposalView, actionValue: ProposalActionValue): KnownBlock[] {
-  const route = proposal.flight
-    ? `${proposal.flight.originAirport}  ✈  ${proposal.flight.destinationAirport}`
-    : `Stay in ${proposal.destinationName}`;
-
-  const blocks: KnownBlock[] = [
+  return [
     { type: 'divider' },
-    { type: 'header', text: { type: 'plain_text', text: route, emoji: true } },
-    {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text:
-          `*${proposal.destinationName}, ${proposal.country}*\n` +
-          `${proposal.startDate} → ${proposal.endDate} · ${proposal.nights} nights · ${formatCount(proposal.travelers, 'traveler')}`,
-      },
-    },
+    { type: 'header', text: { type: 'plain_text', text: describeRoute(proposal), emoji: true } },
+    mrkdwnSection(describeTripLine(proposal)),
     { type: 'section', fields: [describeFlightField(proposal), describeStayField(proposal)] },
+    ...buildCompareFlightsBlocks(proposal.flight),
+    mrkdwnSection(describeTotal(proposal)),
+    mrkdwnContext(describeStatus(proposal)),
+    ...buildConfirmedTicketBlocks(proposal),
+    ...buildDecisionButtons(proposal, actionValue),
   ];
-
-  if (proposal.flight) {
-    blocks.push({
-      type: 'context',
-      elements: [{ type: 'mrkdwn', text: `<${proposal.flight.compareUrl}|Compare prices on Google Flights>` }],
-    });
-  }
-
-  blocks.push(
-    {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text:
-          `*Total  ${formatUsd(proposal.estimatedTotalUsd)}*\n:credit_card: ${proposal.paymentMethod}\n` +
-          `_Plus about ${formatUsd(proposal.dailyBudgetUsd)} per person per day for food and activities._`,
-      },
-    },
-    { type: 'context', elements: [{ type: 'mrkdwn', text: describeStatus(proposal) }] },
-  );
-
-  if (proposal.status === 'confirmed' && proposal.tickets) blocks.push(...buildTicketBlocks(proposal));
-
-  if (proposal.status === 'proposed') {
-    const value = JSON.stringify(actionValue);
-    blocks.push({
-      type: 'actions',
-      elements: [
-        {
-          type: 'button',
-          action_id: CONFIRM_ACTION_ID,
-          style: 'primary',
-          text: { type: 'plain_text', text: `Confirm & pay ${formatUsd(proposal.estimatedTotalUsd)}` },
-          value,
-        },
-        { type: 'button', action_id: CANCEL_ACTION_ID, text: { type: 'plain_text', text: 'Cancel' }, value },
-      ],
-    });
-  }
-  return blocks;
 }
 
 export function parseActionValue(value: string | undefined): ProposalActionValue | undefined {
@@ -192,57 +133,155 @@ function parseJson<T>(value: string | undefined, schema: z.ZodType<T>): T | unde
   }
 }
 
-function buildTicketBlocks(proposal: ProposalView): KnownBlock[] {
-  const { tickets, flight } = proposal;
-  if (!tickets) return [];
+function toReplyText(reply: ChatMessage): string {
+  return reply.error ? `:warning: ${reply.text}` : toSlackMrkdwn(reply.text);
+}
 
-  const legField = (label: string, leg: FlightLeg) => ({
-    type: 'mrkdwn' as const,
-    text:
-      `*${label}* · ${leg.date}\n*${leg.from} → ${leg.to}*\n` +
-      `${flight?.flightNumber ?? ''} · ${leg.departs} → ${leg.arrives}${leg.arrivesNextDay ? ' (+1)' : ''}`,
-  });
+function withProposalSummary(text: string, proposal: ProposalView | undefined): string {
+  return proposal ? `${text}${PARAGRAPH_BREAK}${describeProposal(proposal)}` : text;
+}
 
-  const blocks: KnownBlock[] = [
-    { type: 'header', text: { type: 'plain_text', text: ':ticket: Your tickets', emoji: true } },
-  ];
-  if (tickets.flight) {
-    blocks.push(
-      { type: 'section', fields: [legField('Outbound', tickets.flight.outbound), legField('Return', tickets.flight.inbound)] },
-      {
-        type: 'context',
-        elements: [
-          {
-            type: 'mrkdwn',
-            text:
-              `Booking code *${tickets.flight.recordLocator}* · seats ${tickets.flight.seats.join(', ')} · ` +
-              `e-tickets ${tickets.flight.ticketNumbers.join(', ')}`,
-          },
-        ],
-      },
-    );
+function buildReplyProposalBlocks(proposal: ProposalView | undefined, conversationId: string): KnownBlock[] {
+  return proposal ? buildProposalBlocks(proposal, { conversationId, proposalId: proposal.id }) : [];
+}
+
+function buildSessionHintBlocks(showSessionHint: boolean): KnownBlock[] {
+  return showSessionHint ? [mrkdwnContext(SESSION_HINT)] : [];
+}
+
+function describeBookingStep(label: string, index: number, activeStep: number): string {
+  if (index < activeStep) return `:white_check_mark: ${label}`;
+  if (index === activeStep) return `:hourglass_flowing_sand: *${label}…*`;
+  return `:white_small_square: ${label}`;
+}
+
+function splitIntoSections(text: string): string[] {
+  const sections: string[] = [];
+  let current = '';
+  for (const paragraph of text.split(PARAGRAPH_BREAK)) {
+    const combined = current ? `${current}${PARAGRAPH_BREAK}${paragraph}` : paragraph;
+    if (combined.length <= MAX_SECTION_TEXT) {
+      current = combined;
+      continue;
+    }
+    if (current) sections.push(current);
+    const pieces = splitIntoPieces(paragraph, MAX_SECTION_TEXT);
+    current = pieces.pop() ?? '';
+    sections.push(...pieces);
   }
-  blocks.push({
-    type: 'section',
-    text: {
-      type: 'mrkdwn',
-      text:
-        `:hotel: *Hotel voucher* · ${proposal.stay.name}\nConfirmation *${tickets.stay.confirmationCode}* · ` +
-        `check-in ${tickets.stay.checkIn} from ${tickets.stay.checkInTime} · check-out ${tickets.stay.checkOut} by ${tickets.stay.checkOutTime}`,
+  if (current) sections.push(current);
+  return sections;
+}
+
+function splitIntoPieces(text: string, pieceLength: number): string[] {
+  const pieceCount = Math.ceil(text.length / pieceLength);
+  return Array.from({ length: pieceCount }, (_unused, index) => text.slice(index * pieceLength, (index + 1) * pieceLength));
+}
+
+function describeRoute(proposal: ProposalView): string {
+  const { flight } = proposal;
+  return flight ? `${flight.originAirport}  ✈  ${flight.destinationAirport}` : `Stay in ${proposal.destinationName}`;
+}
+
+function describeTripLine(proposal: ProposalView): string {
+  return (
+    `*${proposal.destinationName}, ${proposal.country}*\n` +
+    `${proposal.startDate} → ${proposal.endDate} · ${proposal.nights} nights · ${formatCount(proposal.travelers, 'traveler')}`
+  );
+}
+
+function describeTotal(proposal: ProposalView): string {
+  return (
+    `*Total  ${formatUsd(proposal.estimatedTotalUsd)}*\n:credit_card: ${proposal.paymentMethod}\n` +
+    `_Plus about ${formatUsd(proposal.dailyBudgetUsd)} per person per day for food and activities._`
+  );
+}
+
+function buildCompareFlightsBlocks(flight: ProposalFlight | undefined): KnownBlock[] {
+  return flight ? [mrkdwnContext(`<${flight.compareUrl}|Compare prices on Google Flights>`)] : [];
+}
+
+function buildConfirmedTicketBlocks(proposal: ProposalView): KnownBlock[] {
+  if (proposal.status !== 'confirmed' || !proposal.tickets) return [];
+  return buildTicketBlocks(proposal, proposal.tickets);
+}
+
+function buildDecisionButtons(proposal: ProposalView, actionValue: ProposalActionValue): KnownBlock[] {
+  if (proposal.status !== 'proposed') return [];
+  const value = JSON.stringify(actionValue);
+  return [
+    {
+      type: 'actions',
+      elements: [
+        {
+          type: 'button',
+          action_id: CONFIRM_ACTION_ID,
+          style: 'primary',
+          text: { type: 'plain_text', text: `Confirm & pay ${formatUsd(proposal.estimatedTotalUsd)}` },
+          value,
+        },
+        { type: 'button', action_id: CANCEL_ACTION_ID, text: { type: 'plain_text', text: 'Cancel' }, value },
+      ],
     },
-  });
-  return blocks;
+  ];
+}
+
+function buildTicketBlocks(proposal: ProposalView, tickets: TripTickets): KnownBlock[] {
+  return [
+    { type: 'header', text: { type: 'plain_text', text: ':ticket: Your tickets', emoji: true } },
+    ...buildFlightTicketBlocks(tickets.flight, proposal.flight?.flightNumber ?? ''),
+    mrkdwnSection(describeHotelVoucher(proposal.stay.name, tickets)),
+  ];
+}
+
+function buildFlightTicketBlocks(flightTickets: FlightTickets | undefined, flightNumber: string): KnownBlock[] {
+  if (!flightTickets) return [];
+  return [
+    {
+      type: 'section',
+      fields: [
+        mrkdwnText(describeLeg('Outbound', flightTickets.outbound, flightNumber)),
+        mrkdwnText(describeLeg('Return', flightTickets.inbound, flightNumber)),
+      ],
+    },
+    mrkdwnContext(
+      `Booking code *${flightTickets.recordLocator}* · seats ${flightTickets.seats.join(', ')} · ` +
+        `e-tickets ${flightTickets.ticketNumbers.join(', ')}`,
+    ),
+  ];
+}
+
+function describeLeg(label: string, leg: FlightLeg, flightNumber: string): string {
+  const nextDayMarker = leg.arrivesNextDay ? ' (+1)' : '';
+  return (
+    `*${label}* · ${leg.date}\n*${leg.from} → ${leg.to}*\n` +
+    `${flightNumber} · ${leg.departs} → ${leg.arrives}${nextDayMarker}`
+  );
+}
+
+function describeHotelVoucher(stayName: string, { stay }: TripTickets): string {
+  return (
+    `:hotel: *Hotel voucher* · ${stayName}\nConfirmation *${stay.confirmationCode}* · ` +
+    `check-in ${stay.checkIn} from ${stay.checkInTime} · check-out ${stay.checkOut} by ${stay.checkOutTime}`
+  );
 }
 
 function buildDestinationBlocks(destinations: DestinationCardView[]): KnownBlock[] {
-  const cards: KnownBlock[] = destinations.slice(0, MAX_DESTINATION_CARDS).map((destination, index) => ({
+  if (destinations.length === 0) return [];
+  const cards = destinations.slice(0, MAX_DESTINATION_CARDS).map(buildDestinationCard);
+  return [{ type: 'divider' }, ...cards];
+}
+
+function buildDestinationCard(destination: DestinationCardView, index: number): KnownBlock {
+  const tags = destination.tags.slice(0, MAX_DESTINATION_TAGS).map((tag) => `\`${tag}\``).join(' ');
+  return {
     type: 'section',
     text: {
       type: 'mrkdwn',
       text:
         `*${destination.name}*, ${destination.country}  ·  _${destination.region}_\n` +
         `*${formatUsd(destination.dailyCostUsd)}*/day · ${destination.budgetTier} · best in ${formatMonths(destination.bestMonths)}\n` +
-        destination.tags.slice(0, 3).map((tag) => `\`${tag}\``).join(' '),
+        tags,
     },
     accessory: {
       type: 'button',
@@ -250,8 +289,7 @@ function buildDestinationBlocks(destinations: DestinationCardView[]): KnownBlock
       text: { type: 'plain_text', text: 'Plan this trip' },
       value: JSON.stringify({ text: `Plan a trip to ${destination.name}` } satisfies QuickReplyValue),
     },
-  }));
-  return [{ type: 'divider' }, ...cards];
+  };
 }
 
 function buildActionsBlock(quickReplies: string[]): KnownBlock {
@@ -276,45 +314,56 @@ function buildActionsBlock(quickReplies: string[]): KnownBlock {
 
 function describeFlightField(proposal: ProposalView) {
   const { flight } = proposal;
-  if (!flight) return { type: 'mrkdwn' as const, text: '*:airplane: Flight*\nNot included' };
-  const stops = flight.stops === 0 ? 'Direct' : `${flight.stops} stop`;
-  return {
-    type: 'mrkdwn' as const,
-    text:
-      `*:airplane: Flight*\n${flight.airline} ${flight.flightNumber}\n` +
-      `${stops} · ${flight.durationHours}h · departs ${flight.departTime}\n` +
+  if (!flight) return mrkdwnText('*:airplane: Flight*\nNot included');
+  return mrkdwnText(
+    `*:airplane: Flight*\n${flight.airline} ${flight.flightNumber}\n` +
+      `${formatStops(flight.stops)} · ${flight.durationHours}h · departs ${flight.departTime}\n` +
       `${formatUsd(flight.roundTripPriceUsdPerTraveler)} × ${proposal.travelers} = *${formatUsd(proposal.costs.flightsUsd)}*`,
-  };
+  );
 }
 
 function describeStayField(proposal: ProposalView) {
   const { stay } = proposal;
-  const rooms = formatCount(stay.rooms, 'room');
-  return {
-    type: 'mrkdwn' as const,
-    text:
-      `*:hotel: Stay*\n${stay.name} · ★ ${stay.rating}\n` +
-      `${formatUsd(stay.nightlyRateUsd)}/night × ${proposal.nights} × ${rooms}\n= *${formatUsd(proposal.costs.stayUsd)}*`,
-  };
+  return mrkdwnText(
+    `*:hotel: Stay*\n${stay.name} · ★ ${stay.rating}\n` +
+      `${formatUsd(stay.nightlyRateUsd)}/night × ${proposal.nights} × ${formatCount(stay.rooms, 'room')}\n` +
+      `= *${formatUsd(proposal.costs.stayUsd)}*`,
+  );
 }
 
 function describeStatus(proposal: ProposalView): string {
-  const statusLine = STATUS_LINES[proposal.status];
-  if (proposal.status === 'confirmed' && proposal.bookingRef) return `${statusLine} · Reference *${proposal.bookingRef}*`;
-  if (proposal.status === 'proposed') return `${statusLine} · or reply "confirm" / "cancel"`;
-  return statusLine;
+  return [STATUS_LINES[proposal.status], describeStatusHint(proposal)].filter(Boolean).join(' · ');
+}
+
+function describeStatusHint(proposal: ProposalView): string | undefined {
+  if (proposal.status === 'proposed') return 'or reply "confirm" / "cancel"';
+  if (proposal.status === 'confirmed' && proposal.bookingRef) return `Reference *${proposal.bookingRef}*`;
+  return undefined;
 }
 
 function describeProposal(proposal: ProposalView): string {
+  const summary = `${STATUS_SUMMARY_PREFIXES[proposal.status]}: ${describeTripSummary(proposal)}`;
+  if (proposal.status === 'proposed') return `${summary} Reply "confirm" or "cancel".`;
+  if (proposal.status === 'confirmed') return `${summary} Reference ${proposal.bookingRef ?? ''}.`;
+  return summary;
+}
+
+function describeTripSummary(proposal: ProposalView): string {
   const flight = proposal.flight ? ` with ${proposal.flight.airline} flights` : '';
-  const summary =
+  return (
     `${proposal.destinationName}, ${proposal.country}, ${proposal.startDate} → ${proposal.endDate}, ` +
-    `${formatCount(proposal.travelers, 'traveler')}, ${proposal.stay.name}${flight}, total ${formatUsd(proposal.estimatedTotalUsd)}.`;
-  const statusText: Record<ProposalStatus, string> = {
-    proposed: `Proposed trip: ${summary} Reply "confirm" or "cancel".`,
-    confirmed: `Booked trip: ${summary} Reference ${proposal.bookingRef ?? ''}.`,
-    cancelled: `Cancelled trip: ${summary}`,
-    superseded: `Replaced trip proposal: ${summary}`,
-  };
-  return statusText[proposal.status];
+    `${formatCount(proposal.travelers, 'traveler')}, ${proposal.stay.name}${flight}, total ${formatUsd(proposal.estimatedTotalUsd)}.`
+  );
+}
+
+function mrkdwnText(text: string) {
+  return { type: 'mrkdwn' as const, text };
+}
+
+function mrkdwnSection(text: string): KnownBlock {
+  return { type: 'section', text: mrkdwnText(text) };
+}
+
+function mrkdwnContext(text: string): KnownBlock {
+  return { type: 'context', elements: [mrkdwnText(text)] };
 }

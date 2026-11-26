@@ -4,6 +4,7 @@ import { IconBed, IconCreditCard, IconExternalLink, IconPlane } from '@tabler/ic
 import {
   SAVED_PAYMENT_METHODS,
   formatCount,
+  formatStops,
   formatUsd,
   type ProposalDecision,
   type ProposalStatus,
@@ -193,7 +194,7 @@ function FlightLine({ proposal }: { proposal: ProposalView }) {
     );
   }
 
-  const stops = flight.stops === 0 ? 'Direct' : `${flight.stops} stop`;
+  const stops = formatStops(flight.stops);
   return (
     <LineItem
       icon={<IconPlane size={18} stroke={1.6} />}
