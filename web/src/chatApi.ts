@@ -4,13 +4,12 @@ import type {
   ChatMessage,
   ConversationSummary,
   CreateConversationRequest,
+  ProposalDecision,
   ResolveProposalRequest,
   ResolveProposalResponse,
   SendMessageRequest,
   SendMessageResponse,
 } from '@app/shared';
-
-export type ProposalDecision = ResolveProposalRequest['decision'];
 
 export class ApiRequestError extends Error {
   constructor(

@@ -1,6 +1,6 @@
 import { App, LogLevel, type BlockAction, type ButtonAction, type webApi } from '@slack/bolt';
+import type { ProposalDecision } from '@app/shared';
 import type { TripAssistant } from '../core/assistant.js';
-import type { ProposalDecision } from '../core/proposals.js';
 import type { ConversationStore } from '../core/store.js';
 import { CANCEL_ACTION_ID, CONFIRM_ACTION_ID, NEW_TRIP_ACTION_ID, QUICK_REPLY_ACTION_PREFIX } from './slack.blocks.js';
 import { createSlackHandlers, type SlackChat } from './slack.handlers.js';

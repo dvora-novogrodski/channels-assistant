@@ -262,7 +262,7 @@ describe('Slack formatting', () => {
         departTime: '08:00',
         durationHours: 5,
         stops: 0,
-        priceUsdPerTraveler: 300,
+        roundTripPriceUsdPerTraveler: 300,
         compareUrl: 'https://www.google.com/travel/flights?q=x',
       },
     });

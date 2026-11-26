@@ -17,8 +17,7 @@ export type LlmMessage =
       role: 'assistant';
       text?: string;
       toolCalls: ToolCall[];
-      // Provider-specific parts (e.g. Gemini thought signatures) that must be sent back unchanged.
-      raw?: unknown;
+      providerParts?: unknown;
     }
   | { role: 'tool'; results: ToolResult[] };
 
@@ -37,7 +36,7 @@ export interface LlmRequest {
 export interface LlmReply {
   text?: string;
   toolCalls: ToolCall[];
-  raw?: unknown;
+  providerParts?: unknown;
 }
 
 export interface Llm {

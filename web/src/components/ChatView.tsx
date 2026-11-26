@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Alert, Box, Button, Center, Container, Group, Loader, ScrollArea, Stack, Text } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
-import type { ProposalDecision } from '../chatApi';
+import type { ProposalDecision } from '@app/shared';
 import type { LoadStatus, UiMessage } from '../useChat';
 import { Composer } from './Composer';
 import { AssistantAvatar, MessageBubble } from './MessageBubble';

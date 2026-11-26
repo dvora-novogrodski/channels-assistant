@@ -10,7 +10,6 @@ const TITLE_MAX_LENGTH = 40;
 export type Proposal = ProposalView;
 export type Booking = Proposal & { bookingRef: string; confirmedAt: string };
 
-// Messages reference proposals by id so a card always shows the proposal's current status.
 export type StoredMessage = Omit<ChatMessage, 'proposal'> & { proposalId?: string };
 
 export interface UserPreferences {
@@ -87,7 +86,6 @@ export class InMemoryConversationStore implements ConversationStore {
     return conversation;
   }
 
-  // Same error for "missing" and "owned by someone else", so ids can't be probed.
   getConversation(ownerId: string, conversationId: string): Conversation {
     const conversation = this.conversations.get(conversationId);
     if (!conversation || conversation.ownerId !== ownerId) {

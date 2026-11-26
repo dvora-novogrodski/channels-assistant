@@ -1,7 +1,5 @@
 import { z } from 'zod';
 
-// One zod schema gives us the TS type AND runtime validation of destinations.json.
-
 export const REGIONS = [
   'Europe',
   'Asia',
@@ -34,22 +32,21 @@ export const StaySchema = z.object({
   name: z.string().min(1),
   type: z.enum(STAY_TYPES),
   tier: z.enum(BUDGET_TIERS),
-  nightlyRateUsd: z.number().positive(), // per room, fictional sample property
+  nightlyRateUsd: z.number().positive(),
   rating: z.number().min(0).max(5),
   highlight: z.string(),
 });
 
 export const DestinationSchema = z.object({
-  id: z.string().regex(/^[a-z0-9-]+$/), // e.g. "lisbon-pt"
+  id: z.string().regex(/^[a-z0-9-]+$/),
   name: z.string().min(1),
   country: z.string().min(1),
   region: z.enum(REGIONS),
   airportCode: z.string().regex(/^[A-Z]{3}$/),
   stays: z.array(StaySchema).min(1),
-  // Months (1-12), not "summer": seasons flip between hemispheres.
   bestMonths: z.array(z.number().int().min(1).max(12)).min(1),
   budgetTier: z.enum(BUDGET_TIERS),
-  dailyCostUsd: z.number().positive(), // rough, per person per day
+  dailyCostUsd: z.number().positive(),
   idealDays: z
     .object({ min: z.number().int().positive(), max: z.number().int().positive() })
     .refine(({ min, max }) => min <= max, { message: 'idealDays.min must be <= idealDays.max' }),

@@ -8,6 +8,7 @@ import type { Conversation, Proposal, User, UserPreferences } from './store.js';
 
 export const MAX_NIGHTS = 30;
 export const MAX_TRAVELERS = 10;
+const TIME_ZONE_TOLERANCE_DAYS = 1;
 export const DEFAULT_PAYMENT_METHOD: string = SAVED_PAYMENT_METHODS[0].label;
 
 export interface ToolContext {
@@ -204,10 +205,10 @@ function requireDestination(destinationId: string): Destination {
   return destination;
 }
 
-// "today" is the server's UTC date; one day of slack keeps users west of UTC from being told today is in the past.
-function requireFutureDate(startDate: string, today: string): void {
-  if (startDate < addDays(today, -1)) {
-    throw new ToolInputError(`startDate ${startDate} is in the past (today is ${today}).`);
+function requireFutureDate(startDate: string, utcToday: string): void {
+  const earliestLocalToday = addDays(utcToday, -TIME_ZONE_TOLERANCE_DAYS);
+  if (startDate < earliestLocalToday) {
+    throw new ToolInputError(`startDate ${startDate} is in the past (today is ${utcToday}).`);
   }
 }
 
@@ -264,7 +265,7 @@ function buildProposal(trip: {
   const { destination, stay, flight, startDate, nights, travelers } = trip;
   const rooms = Math.ceil(travelers / 2);
   const stayUsd = stay.nightlyRateUsd * nights * rooms;
-  const flightsUsd = flight ? flight.priceUsdPerTraveler * travelers : 0;
+  const flightsUsd = flight ? flight.roundTripPriceUsdPerTraveler * travelers : 0;
 
   return {
     id: randomUUID(),
@@ -284,7 +285,7 @@ function buildProposal(trip: {
       departTime: flight.departTime,
       durationHours: flight.durationHours,
       stops: flight.stops,
-      priceUsdPerTraveler: flight.priceUsdPerTraveler,
+      roundTripPriceUsdPerTraveler: flight.roundTripPriceUsdPerTraveler,
       compareUrl: flight.compareUrl,
     },
     costs: { stayUsd, flightsUsd },

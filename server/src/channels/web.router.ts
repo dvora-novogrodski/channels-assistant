@@ -1,6 +1,6 @@
 import { Router, type Response } from 'express';
 import { z } from 'zod';
-import { SAVED_PAYMENT_METHODS } from '@app/shared';
+import { PROPOSAL_DECISIONS, SAVED_PAYMENT_METHODS } from '@app/shared';
 import type {
   BookingView,
   ChatMessage,
@@ -13,6 +13,7 @@ import type {
 } from '@app/shared';
 import type { TripAssistant } from '../core/assistant.js';
 import type { ConversationStore } from '../core/store.js';
+import { parseRequest } from '../http/parseRequest.js';
 
 export const MAX_MESSAGE_LENGTH = 2000;
 const SAVED_PAYMENT_METHOD_IDS = SAVED_PAYMENT_METHODS.map(({ id }) => id);
@@ -28,7 +29,7 @@ const SendMessageSchema = z.object({
 
 const ResolveProposalSchema = z.object({
   userId: z.uuid(),
-  decision: z.enum(['confirm', 'cancel']),
+  decision: z.enum(PROPOSAL_DECISIONS),
   paymentMethodId: z.enum(SAVED_PAYMENT_METHOD_IDS).optional(),
 }) satisfies z.ZodType<ResolveProposalRequest>;
 
@@ -40,8 +41,7 @@ interface WebRouterDependencies {
   assistant: TripAssistant;
 }
 
-// Web user ids are namespaced so they can never collide with Slack user ids in the shared store.
-function toOwnerId(userId: string): string {
+function toWebOwnerId(userId: string): string {
   return `web:${userId}`;
 }
 
@@ -49,39 +49,39 @@ export function createWebRouter({ store, assistant }: WebRouterDependencies): Ro
   const router = Router();
 
   router.get('/conversations', (req, res: Response<ConversationSummary[]>) => {
-    const { userId } = UserQuerySchema.parse(req.query);
-    res.json(store.listConversations(toOwnerId(userId)));
+    const { userId } = parseRequest(UserQuerySchema, req.query);
+    res.json(store.listConversations(toWebOwnerId(userId)));
   });
 
   router.get('/bookings', (req, res: Response<BookingView[]>) => {
-    const { userId } = UserQuerySchema.parse(req.query);
-    res.json([...store.getUser(toOwnerId(userId)).bookings].reverse());
+    const { userId } = parseRequest(UserQuerySchema, req.query);
+    res.json([...store.getUser(toWebOwnerId(userId)).bookings].reverse());
   });
 
   router.post('/conversations', (req, res: Response<ConversationSummary>) => {
-    const { userId } = CreateConversationSchema.parse(req.body);
-    const { id, title, updatedAt } = store.createConversation(toOwnerId(userId));
+    const { userId } = parseRequest(CreateConversationSchema, req.body);
+    const { id, title, updatedAt } = store.createConversation(toWebOwnerId(userId));
     res.status(201).json({ id, title, updatedAt });
   });
 
   router.get('/conversations/:conversationId/messages', (req, res: Response<ChatMessage[]>) => {
-    const { conversationId } = ConversationParamsSchema.parse(req.params);
-    const { userId } = UserQuerySchema.parse(req.query);
-    res.json(store.listMessages(toOwnerId(userId), conversationId));
+    const { conversationId } = parseRequest(ConversationParamsSchema, req.params);
+    const { userId } = parseRequest(UserQuerySchema, req.query);
+    res.json(store.listMessages(toWebOwnerId(userId), conversationId));
   });
 
   router.post('/conversations/:conversationId/messages', async (req, res: Response<SendMessageResponse>) => {
-    const { conversationId } = ConversationParamsSchema.parse(req.params);
-    const { userId, text } = SendMessageSchema.parse(req.body);
-    res.json(await assistant.handleMessage(toOwnerId(userId), conversationId, text));
+    const { conversationId } = parseRequest(ConversationParamsSchema, req.params);
+    const { userId, text } = parseRequest(SendMessageSchema, req.body);
+    res.json(await assistant.handleMessage(toWebOwnerId(userId), conversationId, text));
   });
 
   router.post(
     '/conversations/:conversationId/proposals/:proposalId',
     (req, res: Response<ResolveProposalResponse>) => {
-      const { conversationId, proposalId } = ProposalParamsSchema.parse(req.params);
-      const { userId, decision, paymentMethodId } = ResolveProposalSchema.parse(req.body);
-      res.json(assistant.resolveProposal(toOwnerId(userId), conversationId, proposalId, decision, paymentMethodId));
+      const { conversationId, proposalId } = parseRequest(ProposalParamsSchema, req.params);
+      const { userId, decision, paymentMethodId } = parseRequest(ResolveProposalSchema, req.body);
+      res.json(assistant.resolveProposal(toWebOwnerId(userId), conversationId, proposalId, decision, paymentMethodId));
     },
   );
 

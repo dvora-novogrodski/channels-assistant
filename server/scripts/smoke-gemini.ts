@@ -32,7 +32,7 @@ if (!call) {
 }
 
 messages.push(
-  { role: 'assistant', text: first.text, toolCalls: first.toolCalls, raw: first.raw },
+  { role: 'assistant', text: first.text, toolCalls: first.toolCalls, providerParts: first.providerParts },
   { role: 'tool', results: [{ callId: call.id, name: call.name, output: { tempC: 21, sky: 'sunny' } }] },
 );
 

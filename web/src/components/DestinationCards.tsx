@@ -1,6 +1,5 @@
 import { Group, Text, UnstyledButton } from '@mantine/core';
-import type { DestinationCardView } from '@app/shared';
-import { formatMonths, formatUsd } from '../formatTrip.util';
+import { formatMonths, formatUsd, type DestinationCardView } from '@app/shared';
 import classes from './DestinationCards.module.css';
 
 const BUDGET_LABELS: Record<string, string> = { budget: 'Budget', mid: 'Mid-range', luxury: 'Luxury' };

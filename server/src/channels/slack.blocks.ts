@@ -1,6 +1,16 @@
 import type { KnownBlock } from '@slack/types';
 import { z } from 'zod';
-import type { ChatMessage, DestinationCardView, FlightLeg, ProposalStatus, ProposalView } from '@app/shared';
+import {
+  BOOKING_STEPS,
+  formatCount,
+  formatMonths,
+  formatUsd,
+  type ChatMessage,
+  type DestinationCardView,
+  type FlightLeg,
+  type ProposalStatus,
+  type ProposalView,
+} from '@app/shared';
 
 export const CONFIRM_ACTION_ID = 'proposal_confirm';
 export const CANCEL_ACTION_ID = 'proposal_cancel';
@@ -10,7 +20,6 @@ export const QUICK_REPLY_ACTION_PREFIX = 'quick_reply_';
 export const SESSION_HINT = 'Tip: everything stays in this chat. Type *new trip* or press *New trip* to start fresh.';
 const MAX_DESTINATION_CARDS = 5;
 const MAX_SECTION_TEXT = 2900;
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const STATUS_LINES: Record<ProposalStatus, string> = {
   proposed: ':large_orange_circle: *Ready to book* · nothing is charged until you confirm',
@@ -30,8 +39,6 @@ export interface SlackMessageContent {
   blocks: KnownBlock[];
 }
 
-// Gemini replies in GitHub-style Markdown; Slack's mrkdwn uses *bold*, <url|label> links and no headings.
-// &, < and > are escaped first so model text can never form Slack control sequences such as <!channel>.
 export function toSlackMrkdwn(markdown: string): string {
   return markdown
     .replace(/&/g, '&amp;')
@@ -60,8 +67,6 @@ export function buildReplyContent(
   return { text: reply.proposal ? `${text}\n\n${describeProposal(reply.proposal)}` : text, blocks };
 }
 
-export const BOOKING_STEPS = ['Holding your seats', 'Confirming your hotel', 'Processing payment', 'Issuing your tickets'];
-
 export function buildBookingProgressContent(reply: ChatMessage, activeStep: number): SlackMessageContent {
   const steps = BOOKING_STEPS.map((label, index) => {
     if (index < activeStep) return `:white_check_mark: ${label}`;
@@ -78,7 +83,6 @@ export function buildBookingProgressContent(reply: ChatMessage, activeStep: numb
   };
 }
 
-// Slack rejects a section whose text is longer than 3000 characters, so long replies are split by paragraph.
 export function buildTextSections(text: string): KnownBlock[] {
   const chunks: string[] = [];
   let current = '';
@@ -124,7 +128,7 @@ export function buildProposalBlocks(proposal: ProposalView, actionValue: Proposa
         type: 'mrkdwn',
         text:
           `*${proposal.destinationName}, ${proposal.country}*\n` +
-          `${proposal.startDate} → ${proposal.endDate} · ${proposal.nights} nights · ${pluralTravelers(proposal.travelers)}`,
+          `${proposal.startDate} → ${proposal.endDate} · ${proposal.nights} nights · ${formatCount(proposal.travelers, 'traveler')}`,
       },
     },
     { type: 'section', fields: [describeFlightField(proposal), describeStayField(proposal)] },
@@ -143,8 +147,8 @@ export function buildProposalBlocks(proposal: ProposalView, actionValue: Proposa
       text: {
         type: 'mrkdwn',
         text:
-          `*Total  ${usd(proposal.estimatedTotalUsd)}*\n:credit_card: ${proposal.paymentMethod}\n` +
-          `_Plus about ${usd(proposal.dailyBudgetUsd)} per person per day for food and activities._`,
+          `*Total  ${formatUsd(proposal.estimatedTotalUsd)}*\n:credit_card: ${proposal.paymentMethod}\n` +
+          `_Plus about ${formatUsd(proposal.dailyBudgetUsd)} per person per day for food and activities._`,
       },
     },
     { type: 'context', elements: [{ type: 'mrkdwn', text: describeStatus(proposal) }] },
@@ -161,7 +165,7 @@ export function buildProposalBlocks(proposal: ProposalView, actionValue: Proposa
           type: 'button',
           action_id: CONFIRM_ACTION_ID,
           style: 'primary',
-          text: { type: 'plain_text', text: `Confirm & pay ${usd(proposal.estimatedTotalUsd)}` },
+          text: { type: 'plain_text', text: `Confirm & pay ${formatUsd(proposal.estimatedTotalUsd)}` },
           value,
         },
         { type: 'button', action_id: CANCEL_ACTION_ID, text: { type: 'plain_text', text: 'Cancel' }, value },
@@ -237,7 +241,7 @@ function buildDestinationBlocks(destinations: DestinationCardView[]): KnownBlock
       type: 'mrkdwn',
       text:
         `*${destination.name}*, ${destination.country}  ·  _${destination.region}_\n` +
-        `*${usd(destination.dailyCostUsd)}*/day · ${destination.budgetTier} · best in ${formatMonths(destination.bestMonths)}\n` +
+        `*${formatUsd(destination.dailyCostUsd)}*/day · ${destination.budgetTier} · best in ${formatMonths(destination.bestMonths)}\n` +
         destination.tags.slice(0, 3).map((tag) => `\`${tag}\``).join(' '),
     },
     accessory: {
@@ -279,18 +283,18 @@ function describeFlightField(proposal: ProposalView) {
     text:
       `*:airplane: Flight*\n${flight.airline} ${flight.flightNumber}\n` +
       `${stops} · ${flight.durationHours}h · departs ${flight.departTime}\n` +
-      `${usd(flight.priceUsdPerTraveler)} × ${proposal.travelers} = *${usd(proposal.costs.flightsUsd)}*`,
+      `${formatUsd(flight.roundTripPriceUsdPerTraveler)} × ${proposal.travelers} = *${formatUsd(proposal.costs.flightsUsd)}*`,
   };
 }
 
 function describeStayField(proposal: ProposalView) {
   const { stay } = proposal;
-  const rooms = stay.rooms === 1 ? '1 room' : `${stay.rooms} rooms`;
+  const rooms = formatCount(stay.rooms, 'room');
   return {
     type: 'mrkdwn' as const,
     text:
       `*:hotel: Stay*\n${stay.name} · ★ ${stay.rating}\n` +
-      `${usd(stay.nightlyRateUsd)}/night × ${proposal.nights} × ${rooms}\n= *${usd(proposal.costs.stayUsd)}*`,
+      `${formatUsd(stay.nightlyRateUsd)}/night × ${proposal.nights} × ${rooms}\n= *${formatUsd(proposal.costs.stayUsd)}*`,
   };
 }
 
@@ -305,7 +309,7 @@ function describeProposal(proposal: ProposalView): string {
   const flight = proposal.flight ? ` with ${proposal.flight.airline} flights` : '';
   const summary =
     `${proposal.destinationName}, ${proposal.country}, ${proposal.startDate} → ${proposal.endDate}, ` +
-    `${pluralTravelers(proposal.travelers)}, ${proposal.stay.name}${flight}, total ${usd(proposal.estimatedTotalUsd)}.`;
+    `${formatCount(proposal.travelers, 'traveler')}, ${proposal.stay.name}${flight}, total ${formatUsd(proposal.estimatedTotalUsd)}.`;
   const statusText: Record<ProposalStatus, string> = {
     proposed: `Proposed trip: ${summary} Reply "confirm" or "cancel".`,
     confirmed: `Booked trip: ${summary} Reference ${proposal.bookingRef ?? ''}.`,
@@ -313,17 +317,4 @@ function describeProposal(proposal: ProposalView): string {
     superseded: `Replaced trip proposal: ${summary}`,
   };
   return statusText[proposal.status];
-}
-
-function formatMonths(months: number[]): string {
-  const names = [...months].sort((a, b) => a - b).map((month) => MONTH_NAMES[month - 1] ?? '');
-  return names.length <= 4 ? names.join(', ') : `${names.slice(0, 4).join(', ')} +${names.length - 4}`;
-}
-
-function usd(amount: number): string {
-  return `$${amount.toLocaleString('en-US')}`;
-}
-
-function pluralTravelers(travelers: number): string {
-  return `${travelers} traveler${travelers === 1 ? '' : 's'}`;
 }

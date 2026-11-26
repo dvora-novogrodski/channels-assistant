@@ -1,9 +1,7 @@
 import { randomInt } from 'node:crypto';
-import { SAVED_PAYMENT_METHODS, type ResolveProposalRequest } from '@app/shared';
+import { SAVED_PAYMENT_METHODS, formatCount, formatUsd, type ProposalDecision } from '@app/shared';
 import type { Proposal, User } from './store.js';
 import { issueTickets } from './tickets.js';
-
-export type ProposalDecision = ResolveProposalRequest['decision'];
 
 export interface DecisionOutcome {
   changed: boolean;
@@ -23,7 +21,6 @@ export function parseDecision(text: string): ProposalDecision | undefined {
   return undefined;
 }
 
-// Idempotent: repeating the decision that already happened (a double click, a Slack retry) changes nothing.
 export function applyDecision(
   user: User,
   proposal: Proposal,
@@ -55,12 +52,12 @@ function describeOutcome(proposal: Proposal): string {
   if (proposal.status === 'cancelled') {
     return `Cancelled the proposed trip to ${proposal.destinationName}. Nothing was booked.`;
   }
-  const travelers = `${proposal.travelers} traveler${proposal.travelers === 1 ? '' : 's'}`;
+  const travelers = formatCount(proposal.travelers, 'traveler');
   const lines = [
     `**✅ Trip booked: ${proposal.destinationName}, ${proposal.country}**`,
     '',
     `- **Dates:** ${formatDate(proposal.startDate)} – ${formatDate(proposal.endDate)} · ${travelers}`,
-    `- **Paid:** $${proposal.estimatedTotalUsd.toLocaleString('en-US')} with ${proposal.paymentMethod}`,
+    `- **Paid:** ${formatUsd(proposal.estimatedTotalUsd)} with ${proposal.paymentMethod}`,
     `- **Booking reference:** \`${proposal.bookingRef}\``,
   ];
   if (proposal.flight && proposal.tickets?.flight) {

@@ -2,7 +2,6 @@ import { LlmError, type Llm, type LlmErrorKind, type LlmReply, type LlmRequest }
 
 export const RETRY_DELAY_MS = 1500;
 
-// Free-tier quota and "high demand" 503/504s are per model and short-lived, so another attempt often succeeds.
 const RETRYABLE_KINDS = new Set<LlmErrorKind>(['rate_limit', 'unavailable']);
 
 type Sleep = (milliseconds: number) => Promise<void>;

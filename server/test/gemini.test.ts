@@ -9,10 +9,10 @@ function replyWithParts(parts: Part[], finishReason = FinishReason.STOP) {
 }
 
 describe('toLlmReply', () => {
-  it('extracts text and keeps the raw parts', () => {
+  it('extracts text and keeps the provider parts', () => {
     const parts: Part[] = [{ text: 'Hello ' }, { text: 'there' }];
 
-    expect(toLlmReply(replyWithParts(parts))).toEqual({ text: 'Hello there', toolCalls: [], raw: parts });
+    expect(toLlmReply(replyWithParts(parts))).toEqual({ text: 'Hello there', toolCalls: [], providerParts: parts });
   });
 
   it('extracts tool calls and ignores thought text', () => {
@@ -66,12 +66,12 @@ describe('toGeminiContents', () => {
     ]);
   });
 
-  it('sends raw assistant parts back unchanged so thought signatures survive', () => {
-    const raw: Part[] = [{ functionCall: { name: 'list_bookings', args: {} }, thoughtSignature: 'sig-123' }];
+  it('sends provider parts back unchanged so thought signatures survive', () => {
+    const providerParts: Part[] = [{ functionCall: { name: 'list_bookings', args: {} }, thoughtSignature: 'sig-123' }];
 
-    const [content] = toGeminiContents([{ role: 'assistant', toolCalls: [], raw }]);
+    const [content] = toGeminiContents([{ role: 'assistant', toolCalls: [], providerParts }]);
 
-    expect(content?.parts).toBe(raw);
+    expect(content?.parts).toBe(providerParts);
   });
 
   it('marks tool errors and drops locally generated call ids', () => {

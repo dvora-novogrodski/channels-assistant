@@ -110,7 +110,7 @@ describe('executeToolCall', () => {
       proposal: {
         stay: { name: 'Tagus View Suites', rooms: 2 },
         flight: { airline: offer?.airline, compareUrl: expect.stringContaining('google.com/travel/flights') },
-        costs: { stayUsd: 190 * 5 * 2, flightsUsd: (offer?.priceUsdPerTraveler ?? 0) * 3 },
+        costs: { stayUsd: 190 * 5 * 2, flightsUsd: (offer?.roundTripPriceUsdPerTraveler ?? 0) * 3 },
       },
     });
   });

@@ -1,8 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { BookingView, ChatMessage, ConversationSummary, ErrorKind, ProposalView } from '@app/shared';
-import { ApiRequestError, chatApi, type ProposalDecision } from './chatApi';
+import {
+  BOOKING_STEPS,
+  BOOKING_STEP_MS,
+  type BookingView,
+  type ChatMessage,
+  type ConversationSummary,
+  type ErrorKind,
+  type ProposalDecision,
+  type ProposalView,
+} from '@app/shared';
+import { ApiRequestError, chatApi } from './chatApi';
 import { getOrCreateUserId, readActiveConversationId, saveActiveConversationId } from './browserStorage.util';
-import { BOOKING_STEPS, BOOKING_STEP_MS } from './components/BookingProgress';
 
 export type LoadStatus = 'loading' | 'ready' | 'error';
 export type UiErrorKind = ErrorKind | 'network';
@@ -40,7 +48,6 @@ export function useChat() {
   const [isSending, setIsSending] = useState(false);
   const [bookings, setBookings] = useState<BookingView[]>([]);
 
-  // Replies that arrive after the user switched chats must not be rendered into the new chat.
   const activeConversationRef = useRef<string | null>(null);
 
   const activate = useCallback((conversationId: string | null) => {
@@ -145,7 +152,6 @@ export function useChat() {
     (failedMessageId: string) => {
       const retry = messages.find(({ id }) => id === failedMessageId)?.retry;
       if (!retry) return;
-      // The server saved neither the failed message nor its reply, so both are replaced by a fresh send.
       void sendMessage(retry.text, [failedMessageId, retry.userMessageId]);
     },
     [messages, sendMessage],
@@ -156,7 +162,6 @@ export function useChat() {
     if (!conversationId) return;
 
     try {
-      // A booking shows its progress steps for their full length even when the server answers instantly.
       const minimumDuration = decision === 'confirm' ? BOOKING_STEPS.length * BOOKING_STEP_MS : 0;
       const [{ proposal, reply }] = await Promise.all([
         chatApi.resolveProposal(userId, conversationId, proposalId, decision, paymentMethodId),

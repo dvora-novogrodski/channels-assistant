@@ -1,9 +1,15 @@
 import { useState, type ReactNode } from 'react';
 import { Alert, Anchor, Badge, Button, Group, Select, Stack, Text } from '@mantine/core';
 import { IconBed, IconCreditCard, IconExternalLink, IconPlane } from '@tabler/icons-react';
-import { SAVED_PAYMENT_METHODS, type ProposalStatus, type ProposalView } from '@app/shared';
-import type { ProposalDecision } from '../chatApi';
-import { formatTripDate, formatUsd } from '../formatTrip.util';
+import {
+  SAVED_PAYMENT_METHODS,
+  formatCount,
+  formatUsd,
+  type ProposalDecision,
+  type ProposalStatus,
+  type ProposalView,
+} from '@app/shared';
+import { formatTripDate } from '../formatTrip.util';
 import classes from './ProposalCard.module.css';
 import { BookingProgress } from './BookingProgress';
 import { TripTickets } from './TripTickets';
@@ -81,7 +87,7 @@ export function ProposalCard({ proposal, onDecision }: ProposalCardProps) {
         </div>
         <Text fz="sm" c="dimmed" mt={2}>
           {formatTripDate(proposal.startDate)} – {formatTripDate(proposal.endDate)} · {proposal.nights} nights ·{' '}
-          {proposal.travelers} {proposal.travelers === 1 ? 'traveler' : 'travelers'}
+          {formatCount(proposal.travelers, 'traveler')}
         </Text>
       </div>
 
@@ -92,9 +98,7 @@ export function ProposalCard({ proposal, onDecision }: ProposalCardProps) {
         <LineItem
           icon={<IconBed size={18} stroke={1.6} />}
           title={`${proposal.stay.name} · ★ ${proposal.stay.rating}`}
-          detail={`${formatUsd(proposal.stay.nightlyRateUsd)} / night × ${proposal.nights} nights × ${proposal.stay.rooms} ${
-            proposal.stay.rooms === 1 ? 'room' : 'rooms'
-          }`}
+          detail={`${formatUsd(proposal.stay.nightlyRateUsd)} / night × ${proposal.nights} nights × ${formatCount(proposal.stay.rooms, 'room')}`}
           amount={proposal.costs.stayUsd}
         />
       </Stack>
@@ -196,7 +200,7 @@ function FlightLine({ proposal }: { proposal: ProposalView }) {
       title={`${flight.airline} ${flight.flightNumber} · ${flight.originAirport} → ${flight.destinationAirport}`}
       detail={
         <>
-          {stops} · {flight.durationHours}h · departs {flight.departTime} · {formatUsd(flight.priceUsdPerTraveler)} ×{' '}
+          {stops} · {flight.durationHours}h · departs {flight.departTime} · {formatUsd(flight.roundTripPriceUsdPerTraveler)} ×{' '}
           {proposal.travelers} ·{' '}
           <Anchor href={flight.compareUrl} target="_blank" rel="noopener noreferrer" fz="xs" inherit>
             compare on Google Flights <IconExternalLink size={11} style={{ verticalAlign: 'middle' }} />

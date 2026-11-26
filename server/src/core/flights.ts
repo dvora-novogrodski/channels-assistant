@@ -22,7 +22,7 @@ export interface FlightOffer {
   departTime: string;
   durationHours: number;
   stops: number;
-  priceUsdPerTraveler: number;
+  roundTripPriceUsdPerTraveler: number;
 }
 
 export interface FlightSearchResult {
@@ -30,11 +30,9 @@ export interface FlightSearchResult {
   compareUrl: string;
 }
 
-// Demo offers are derived from a hash of the search, so the same search always returns the same flights
-// and propose_trip can re-create the offer the user picked without storing search results.
 export function searchFlights(search: FlightSearch): FlightSearchResult {
   const offers = DEMO_AIRLINES.map((airline, index) => buildOffer(search, airline, index)).sort(
-    (a, b) => a.priceUsdPerTraveler - b.priceUsdPerTraveler,
+    (a, b) => a.roundTripPriceUsdPerTraveler - b.roundTripPriceUsdPerTraveler,
   );
   return { offers, compareUrl: buildCompareUrl(search) };
 }
@@ -48,7 +46,7 @@ function buildOffer(search: FlightSearch, airline: (typeof DEMO_AIRLINES)[number
   const seed = hash(`${search.originAirport}-${search.destinationAirport}-${search.departDate}-${index}`);
   const stops = index === 0 ? 0 : seed % 2;
   const durationHours = 2 + (seed % 12) + stops * 2;
-  const priceUsdPerTraveler = Math.round((140 + durationHours * 48 + (seed % 120) - stops * 60) / 5) * 5;
+  const roundTripPriceUsdPerTraveler = Math.round((140 + durationHours * 48 + (seed % 120) - stops * 60) / 5) * 5;
   const departHour = 6 + (seed % 15);
   const departMinute = (seed % 4) * 15;
 
@@ -63,7 +61,7 @@ function buildOffer(search: FlightSearch, airline: (typeof DEMO_AIRLINES)[number
     departTime: `${String(departHour).padStart(2, '0')}:${String(departMinute).padStart(2, '0')}`,
     durationHours,
     stops,
-    priceUsdPerTraveler,
+    roundTripPriceUsdPerTraveler,
   };
 }
 

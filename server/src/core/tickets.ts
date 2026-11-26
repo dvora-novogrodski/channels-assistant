@@ -42,7 +42,6 @@ function issueStayVoucher(proposal: Proposal, random: RandomInt): StayVoucher {
   };
 }
 
-// The return flight leaves in the afternoon of check-out day, after the hotel's check-out time.
 function returnDepartureTime(outboundDeparture: string): string {
   const [hour = 0, minute = 0] = outboundDeparture.split(':').map(Number);
   const returnHour = RETURN_WINDOW_START_HOUR + (hour % RETURN_WINDOW_HOURS);
@@ -54,7 +53,6 @@ function buildLeg(date: string, from: string, to: string, departs: string, durat
   return { date, from, to, departs, arrives: arrival.time, arrivesNextDay: arrival.nextDay };
 }
 
-// Travelers sit together: consecutive letters in one row, continuing in the next row when a row is full.
 function assignSeats(travelers: number, firstRow: number): string[] {
   return Array.from({ length: travelers }, (_unused, index) => {
     const row = firstRow + Math.floor(index / SEAT_LETTERS.length);

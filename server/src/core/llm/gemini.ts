@@ -21,7 +21,6 @@ import {
 
 const REQUEST_TIMEOUT_MS = 20_000;
 
-// Gemini may omit function call ids; ours are prefixed so they are never sent back as if Gemini issued them.
 const LOCAL_CALL_ID_PREFIX = 'local-';
 
 const BLOCKED_FINISH_REASONS = new Set<FinishReason>([
@@ -78,7 +77,7 @@ function toGeminiContent(message: LlmMessage): Content {
     case 'user':
       return { role: 'user', parts: [{ text: message.text }] };
     case 'assistant':
-      return { role: 'model', parts: isPartList(message.raw) ? message.raw : toAssistantParts(message) };
+      return { role: 'model', parts: isPartList(message.providerParts) ? message.providerParts : toAssistantParts(message) };
     case 'tool':
       return {
         role: 'user',
@@ -139,7 +138,7 @@ export function toLlmReply(response: Pick<GenerateContentResponse, 'candidates' 
     throw new LlmError('blocked', `Empty response (finish reason: ${candidate?.finishReason ?? 'none'})`);
   }
 
-  return { text: text || undefined, toolCalls, raw: parts };
+  return { text: text || undefined, toolCalls, providerParts: parts };
 }
 
 export function toLlmError(error: unknown): LlmError {
@@ -152,7 +151,6 @@ export function toLlmError(error: unknown): LlmError {
   return new LlmError('unavailable', describeNetworkError(error));
 }
 
-// Node's fetch reports every network failure as "fetch failed"; the real reason is on `cause`.
 function describeNetworkError(error: unknown): string {
   if (!(error instanceof Error)) return String(error);
   const cause = error.cause;

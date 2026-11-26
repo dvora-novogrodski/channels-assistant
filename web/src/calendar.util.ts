@@ -1,5 +1,7 @@
 import type { BookingView, FlightLeg, ProposalView } from '@app/shared';
 
+const DOWNLOAD_URL_LIFETIME_MS = 10_000;
+
 interface CalendarEvent {
   uid: string;
   title: string;
@@ -16,8 +18,7 @@ export function downloadTripCalendar(proposal: ProposalView | BookingView): void
   link.href = url;
   link.download = `trip-${proposal.destinationName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.ics`;
   link.click();
-  // Some browsers start the download after this handler returns, so the URL must outlive the click.
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  setTimeout(() => URL.revokeObjectURL(url), DOWNLOAD_URL_LIFETIME_MS);
 }
 
 export function buildTripCalendar(proposal: ProposalView | BookingView): string {

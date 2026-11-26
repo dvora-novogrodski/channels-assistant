@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Group, Loader, Stack, Text, ThemeIcon } from '@mantine/core';
 import { IconCheck } from '@tabler/icons-react';
-
-export const BOOKING_STEPS = ['Holding your seats', 'Confirming your hotel', 'Processing payment', 'Issuing your tickets'];
-export const BOOKING_STEP_MS = 900;
+import { BOOKING_STEPS, BOOKING_STEP_MS } from '@app/shared';
 
 export function BookingProgress() {
   const [activeStep, setActiveStep] = useState(0);

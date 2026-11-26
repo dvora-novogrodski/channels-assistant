@@ -60,6 +60,7 @@ describe('proposal confirmation', () => {
     const first = assistant.resolveProposal(ALICE, conversation.id, proposalId, 'confirm');
     const second = assistant.resolveProposal(ALICE, conversation.id, proposalId, 'confirm');
 
+    expect([first.changed, second.changed]).toEqual([true, false]);
     expect(second.proposal.bookingRef).toBe(first.proposal.bookingRef);
     expect(store.getUser(ALICE).bookings).toHaveLength(1);
     expect(store.listMessages(ALICE, conversation.id)).toHaveLength(3);
@@ -70,6 +71,7 @@ describe('proposal confirmation', () => {
     const lateConfirm = assistant.resolveProposal(ALICE, conversation.id, proposalId, 'confirm');
 
     expect(cancelled.proposal.status).toBe('cancelled');
+    expect([cancelled.changed, lateConfirm.changed]).toEqual([true, false]);
     expect(lateConfirm.proposal.status).toBe('cancelled');
     expect(lateConfirm.reply.text).toContain('no longer active');
     expect(store.getUser(ALICE).bookings).toEqual([]);

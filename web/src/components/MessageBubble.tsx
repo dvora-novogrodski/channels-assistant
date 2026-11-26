@@ -1,7 +1,7 @@
 import { Alert, Box, Button, Group, Stack, Text, Typography } from '@mantine/core';
 import { IconAlertTriangle, IconClockPause, IconPlaneTilt, IconRefresh, IconWifiOff } from '@tabler/icons-react';
 import Markdown, { type Components } from 'react-markdown';
-import type { ProposalDecision } from '../chatApi';
+import type { ProposalDecision } from '@app/shared';
 import type { UiErrorKind, UiMessage } from '../useChat';
 import { DestinationCards } from './DestinationCards';
 import { ProposalCard } from './ProposalCard';

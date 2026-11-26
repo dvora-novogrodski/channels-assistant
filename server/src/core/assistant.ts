@@ -1,9 +1,17 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import type { ChatMessage, DestinationCardView, ErrorKind, ProposalView, ResolveProposalResponse } from '@app/shared';
+import {
+  SAVED_PAYMENT_METHODS,
+  type ChatMessage,
+  type DestinationCardView,
+  type ErrorKind,
+  type ProposalDecision,
+  type ProposalView,
+  type ResolveProposalResponse,
+} from '@app/shared';
 import { NotFoundError } from './errors.js';
 import { LlmError, type Llm, type LlmMessage, type LlmReply } from './llm/types.js';
-import { applyDecision, parseDecision, type ProposalDecision } from './proposals.js';
+import { applyDecision, parseDecision } from './proposals.js';
 import type { Conversation, ConversationStore, Proposal, StoredMessage, User, UserPreferences } from './store.js';
 import { executeToolCall, toolSpecs, type ToolContext, type ToolEffect } from './tools.js';
 
@@ -55,7 +63,7 @@ export class TripAssistant {
     const decision = parseDecision(text);
     const pendingProposal = findPendingProposal(conversation);
     if (decision && pendingProposal) {
-      const reply = this.resolve(userId, conversation, pendingProposal, decision, { typedText: text });
+      const { reply } = this.resolve(userId, conversation, pendingProposal, decision, { typedText: text });
       return { reply, updatedProposal: { ...pendingProposal } };
     }
 
@@ -79,10 +87,10 @@ export class TripAssistant {
     const conversation = this.store.getConversation(userId, conversationId);
     const proposal = conversation.proposals.find(({ id }) => id === proposalId);
     if (!proposal) throw new NotFoundError('Proposal not found');
-    if (conversation.busy) return { proposal: { ...proposal }, reply: this.errorReply('busy') };
+    if (conversation.busy) return { proposal: { ...proposal }, reply: this.errorReply('busy'), changed: false };
 
-    const reply = this.resolve(userId, conversation, proposal, decision, { paymentMethodId });
-    return { proposal: { ...proposal }, reply };
+    const { reply, changed } = this.resolve(userId, conversation, proposal, decision, { paymentMethodId });
+    return { proposal: { ...proposal }, reply, changed };
   }
 
   private resolve(
@@ -91,13 +99,12 @@ export class TripAssistant {
     proposal: Proposal,
     decision: ProposalDecision,
     options: { typedText?: string; paymentMethodId?: string } = {},
-  ): ChatMessage {
+  ): { reply: ChatMessage; changed: boolean } {
     const { typedText, paymentMethodId } = options;
     const outcome = applyDecision(this.store.getUser(userId), proposal, decision, this.now(), paymentMethodId);
     const reply = this.message('assistant', outcome.text);
-    if (!outcome.changed) return withoutProposalId(reply);
+    if (!outcome.changed) return { reply: withoutProposalId(reply), changed: false };
 
-    // Recorded as a user/assistant pair so the model knows the outcome and the history keeps alternating roles.
     const buttonNote = `(I pressed ${decision === 'confirm' ? 'Confirm' : 'Cancel'} on the ${proposal.destinationName} proposal.)`;
     conversation.llmHistory.push(
       { role: 'user', text: typedText ?? buttonNote },
@@ -105,7 +112,7 @@ export class TripAssistant {
     );
     if (typedText) this.store.appendMessage(conversation, this.message('user', typedText));
     this.store.appendMessage(conversation, reply);
-    return withoutProposalId(reply);
+    return { reply: withoutProposalId(reply), changed: true };
   }
 
   private async runTurn(userId: string, conversation: Conversation, text: string): Promise<TurnResult> {
@@ -124,7 +131,6 @@ export class TripAssistant {
 
     const finalReply = await this.runToolLoop(working, effects, context);
 
-    // Commit point: nothing from this turn is visible until every LLM call has succeeded.
     conversation.llmHistory = working;
     const { proposal, superseded } = applyEffects(conversation, context.user, effects);
     this.store.appendMessage(conversation, this.message('user', text));
@@ -147,7 +153,7 @@ export class TripAssistant {
         messages: recentHistory(working),
         tools: toolSpecs,
       });
-      working.push({ role: 'assistant', text: reply.text, toolCalls: reply.toolCalls, raw: reply.raw });
+      working.push({ role: 'assistant', text: reply.text, toolCalls: reply.toolCalls, providerParts: reply.providerParts });
       if (reply.toolCalls.length === 0) return reply;
 
       const executions = reply.toolCalls.map((call) => executeToolCall(call, context));
@@ -209,7 +215,6 @@ export function findSuggestedDestinations(turnMessages: LlmMessage[]): Destinati
   return parsed.data.results;
 }
 
-// The model ends replies with "Quick replies: a | b | c"; the line is stripped from the text and shown as chips/buttons.
 export function extractQuickReplies(text: string): { text: string; quickReplies?: string[] } {
   const match = text.match(/\n*\s*\**quick replies:?\**:?\s*(.+)\s*$/i);
   if (!match?.[1]) return { text };
@@ -222,7 +227,6 @@ export function extractQuickReplies(text: string): { text: string; quickReplies?
   return { text: text.slice(0, match.index).trimEnd(), quickReplies: quickReplies.length ? quickReplies : undefined };
 }
 
-// The window must start at a user text message: Gemini rejects a history that opens with a tool result.
 export function recentHistory(messages: LlmMessage[]): LlmMessage[] {
   const windowStart = Math.max(0, messages.length - HISTORY_WINDOW);
   const firstUserIndex = messages.findIndex((message, index) => index >= windowStart && message.role === 'user');
@@ -272,7 +276,7 @@ function buildSystemPrompt(today: string, preferences: UserPreferences): string 
     '- propose_trip once destination, start date, nights and travelers are known (use saved preferences as defaults). Include the flight when you know the departure airport and the user wants one.',
     '- save_preferences when the user mentions their home city/airport, usual group size, budget style or interests.',
     '',
-    'Booking and payment: propose_trip does NOT book. The card it creates shows the total and lets the user pay with a saved card (Visa •••• 4242 by default, or another saved card); the user confirms with the button or by replying "confirm". Never ask for card details; if the user offers them, tell them not to share card details and that their saved card is used. Never say a trip is booked unless list_bookings shows it.',
+    `Booking and payment: propose_trip does NOT book. The card it creates shows the total and lets the user pay with a saved card (${SAVED_PAYMENT_METHODS[0].label} by default, or another saved card); the user confirms with the button or by replying "confirm". Never ask for card details; if the user offers them, tell them not to share card details and that their saved card is used. Never say a trip is booked unless list_bookings shows it.`,
     'If a tool returns an error, fix the arguments or explain the problem. If key details are missing, ask one short question.',
     '',
     'Style: friendly and specific, like a good travel agent. Use short paragraphs and bullet lists, bold destination names, prices as rough USD estimates. Aim for under 160 words unless the user asks for an itinerary or more detail.',

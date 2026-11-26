@@ -1,7 +1,6 @@
 const USER_ID_KEY = 'travel-assistant:user-id';
 const ACTIVE_CONVERSATION_KEY = 'travel-assistant:active-conversation';
 
-// Storage can throw (private mode, blocked site data), so every access degrades to in-memory behaviour.
 function readItem(key: string): string | null {
   try {
     return localStorage.getItem(key);
