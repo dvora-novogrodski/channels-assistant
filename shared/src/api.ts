@@ -71,7 +71,7 @@ export interface ProposalView {
   costs: { stayUsd: number; flightsUsd: number };
   estimatedTotalUsd: number;
   dailyBudgetUsd: number; // typical spending per person per day, not included in the total
-  paymentMethod: string; // demo card on file, e.g. "Visa •••• 4242 (demo)"
+  paymentMethod: string; // label of the saved card, e.g. "Visa •••• 4242"
   status: ProposalStatus;
   bookingRef?: string; // e.g. "TRV-4821", only when confirmed
   tickets?: TripTickets; // only when confirmed
@@ -112,6 +112,7 @@ export interface ConversationSummary {
 
 // ---- HTTP request/response bodies (web channel) ----
 // GET  /api/conversations?userId=                         -> ConversationSummary[]
+// GET  /api/bookings?userId=                              -> BookingView[] (newest first)
 // POST /api/conversations                                 -> ConversationSummary
 // GET  /api/conversations/:id/messages?userId=            -> ChatMessage[]
 // POST /api/conversations/:id/messages                    -> SendMessageResponse
