@@ -1,0 +1,61 @@
+{
+  "web": {
+    "file": "assets/recordings/web.mp4",
+    "duration": 72.8,
+    "crop": null,
+    "marks": {
+      "home": 0,
+      "send:search": 7.89,
+      "reply:search": 10.69,
+      "cards": 13.65,
+      "send:followup": 19.89,
+      "reply:followup": 22.69,
+      "send:book": 30.5,
+      "reply:book": 33.3,
+      "proposal": 35.86,
+      "card-selected": 41.63,
+      "booking-progress": 43.66,
+      "booked": 47.6,
+      "confirmation": 51.82,
+      "send:failure": 57.19,
+      "reply:failure": 58.19,
+      "failure-shown": 60.7,
+      "send:recovery": 66,
+      "reply:recovery": 68.8,
+      "end": 71.3
+    }
+  },
+  "isolation": {
+    "file": "assets/recordings/isolation.mp4",
+    "duration": 5.98,
+    "crop": null,
+    "marks": {
+      "start": 0,
+      "end": 4.48
+    }
+  },
+  "slack": {
+    "file": "assets/recordings/slack.mp4",
+    "duration": 40.44,
+    "crop": {
+      "x": 514,
+      "y": 124,
+      "width": 1401,
+      "height": 898
+    },
+    "marks": {
+      "start": 0,
+      "send:new-trip": 1.84,
+      "reply:new-trip": 4.44,
+      "send:search": 11.71,
+      "reply:search": 14.51,
+      "cards": 16.52,
+      "send:plan": 20.03,
+      "reply:plan": 22.83,
+      "proposal": 25.33,
+      "booking-progress": 29.66,
+      "booked": 30.22,
+      "end": 38.94
+    }
+  }
+}

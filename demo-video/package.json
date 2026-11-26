@@ -1,0 +1,21 @@
+{
+  "name": "travel-assistant-demo-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "login:slack": "node scripts/slack-login.mjs",
+    "record:web": "node scripts/record-web.mjs",
+    "record:slack": "node scripts/record-slack.mjs",
+    "record": "npm run record:web && npm run record:slack",
+    "preview": "cd composition && npx --yes hyperframes@0.9.34 preview",
+    "render": "node scripts/render.mjs",
+    "build": "node scripts/build.mjs && node scripts/compose.mjs",
+    "compose": "node scripts/compose.mjs",
+    "check": "cd composition && npx --yes hyperframes@0.9.34 check"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.3.0",
+    "ffprobe-static": "^3.1.0",
+    "playwright": "^1.48.2"
+  }
+}
