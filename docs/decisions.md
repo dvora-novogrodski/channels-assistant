@@ -38,12 +38,12 @@ Each entry: **decision** — why — alternatives considered — where.
 
 ### The agent
 
-- **Freedom with grounding.** The model may use general travel knowledge (packing, food, itineraries), but anything bookable or priced must come from tools. *Why:* a helpful assistant that never invents prices. *Where:* `buildSystemPrompt`.
+- **Freedom with grounding.** The model may use general travel knowledge (packing, food, itineraries), but anything bookable or priced must come from tools. *Why:* a helpful assistant that never invents prices. *Where:* `core/prompt.ts`.
 - **Prices computed in code**, never by the model (nightly rate × nights × rooms, fare × travelers). *Where:* `tools.buildProposal`.
 - **Deterministic flight offers.** Derived from a hash of route and date, so `propose_trip` re-creates the chosen offer without storing searches; each search includes a Google Flights link for the same trip. *Where:* `core/flights.ts`.
 - **Manual tool loop (capped at 6 steps) instead of a framework.** Easy to read and explain; the cap prevents runaway loops. *Where:* `assistant.runToolLoop`.
 - **Quick replies as a parsed last line.** Cheaper than an extra tool call; if the model omits it, the reply simply has no chips. *Where:* `extractQuickReplies`.
-- **Destination cards from real tool results**, not from the model's text, so they are always accurate. *Where:* `findSuggestedDestinations`.
+- **Destination cards from real tool results**, not from the model's text, so they are always accurate. *Where:* the `suggestDestinations` tool effect in `tools.ts`.
 
 ### Booking and payment
 
@@ -62,7 +62,7 @@ Each entry: **decision** — why — alternatives considered — where.
 ### Slack
 
 - **Socket Mode.** No public URL or request signing; works from a laptop and from Render. *Where:* `slack.bot.ts`.
-- **Flat DM with "New trip" instead of threads.** Threads hid replies and a follow-up outside the thread silently started a new chat. *Trade-off:* old trips are separated only by the "New trip" marker, and an earlier trip cannot be continued from Slack (listed as an improvement). *Where:* `slack.handlers.ts` (`currentSessions`).
+- **Flat DM with "New trip" instead of threads.** Threads hid replies and a follow-up outside the thread silently started a new chat. *Trade-off:* threads keep each trip in its own place, so **My trips** lists the trips with a **Continue** button that makes an earlier trip current again. *Where:* `slack.handlers.ts` (`currentSessions`, `continueTrip`).
 - **Non-rotating app token.** Rotating tokens expire every 12 h and need single-use refresh tokens that a free instance cannot persist. *Where:* `slack-app-manifest.yml`, `config.ts`.
 
 ### Web

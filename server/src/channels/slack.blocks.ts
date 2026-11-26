@@ -7,6 +7,7 @@ import {
   formatStops,
   formatUsd,
   type ChatMessage,
+  type ConversationSummary,
   type DestinationCardView,
   type FlightLeg,
   type FlightTickets,
@@ -19,9 +20,15 @@ import {
 export const CONFIRM_ACTION_ID = 'proposal_confirm';
 export const CANCEL_ACTION_ID = 'proposal_cancel';
 export const NEW_TRIP_ACTION_ID = 'new_trip';
+export const MY_TRIPS_ACTION_ID = 'my_trips';
+export const CONTINUE_TRIP_ACTION_ID = 'continue_trip';
 export const QUICK_REPLY_ACTION_PREFIX = 'quick_reply_';
 
-export const SESSION_HINT = 'Tip: everything stays in this chat. Type *new trip* or press *New trip* to start fresh.';
+export const SESSION_HINT =
+  'Tip: everything stays in this chat. Type *new trip* to start fresh, or *my trips* to go back to an earlier trip.';
+export const NO_EARLIER_TRIPS_TEXT = 'You have no trips yet. Tell me where you would like to go.';
+const MAX_LISTED_TRIPS = 5;
+const tripDateFormat = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 const MAX_DESTINATION_CARDS = 5;
 const MAX_DESTINATION_TAGS = 3;
 const MAX_SECTION_TEXT = 2900;
@@ -44,9 +51,11 @@ const STATUS_SUMMARY_PREFIXES: Record<ProposalStatus, string> = {
 
 export const ProposalActionValueSchema = z.object({ conversationId: z.string(), proposalId: z.string() });
 export const QuickReplyValueSchema = z.object({ text: z.string().min(1) });
+export const ContinueTripValueSchema = z.object({ conversationId: z.string().min(1) });
 
 export type ProposalActionValue = z.infer<typeof ProposalActionValueSchema>;
 export type QuickReplyValue = z.infer<typeof QuickReplyValueSchema>;
+export type ContinueTripValue = z.infer<typeof ContinueTripValueSchema>;
 
 export interface SlackMessageContent {
   text: string;
@@ -102,6 +111,23 @@ export function buildNewTripContent(): SlackMessageContent {
   return { text, blocks: [mrkdwnSection(text), buildActionsBlock(NEW_TRIP_SUGGESTIONS)] };
 }
 
+export function buildTripListContent(trips: ConversationSummary[], currentConversationId: string | undefined): SlackMessageContent {
+  if (trips.length === 0) return { text: NO_EARLIER_TRIPS_TEXT, blocks: [mrkdwnSection(NO_EARLIER_TRIPS_TEXT)] };
+  const listed = trips.slice(0, MAX_LISTED_TRIPS);
+  return {
+    text: `Your trips: ${listed.map(({ title }) => title).join(', ')}`,
+    blocks: [
+      mrkdwnSection(':card_index_dividers: *Your trips*'),
+      ...listed.map((trip) => buildTripRow(trip, trip.id === currentConversationId)),
+    ],
+  };
+}
+
+export function buildTripResumedContent(trip: ConversationSummary): SlackMessageContent {
+  const text = `:leftwards_arrow_with_hook: *Back to: ${toSlackMrkdwn(trip.title)}*\nSend a message to continue this trip.`;
+  return { text, blocks: [mrkdwnSection(text), buildActionsBlock([])] };
+}
+
 export function buildProposalBlocks(proposal: ProposalView, actionValue: ProposalActionValue): KnownBlock[] {
   return [
     { type: 'divider' },
@@ -122,6 +148,30 @@ export function parseActionValue(value: string | undefined): ProposalActionValue
 
 export function parseQuickReplyValue(value: string | undefined): QuickReplyValue | undefined {
   return parseJson(value, QuickReplyValueSchema);
+}
+
+export function parseContinueTripValue(value: string | undefined): ContinueTripValue | undefined {
+  return parseJson(value, ContinueTripValueSchema);
+}
+
+function buildTripRow(trip: ConversationSummary, isCurrent: boolean): KnownBlock {
+  const line = `*${toSlackMrkdwn(trip.title)}*\n_${describeTripActivity(trip, isCurrent)}_`;
+  if (isCurrent) return mrkdwnSection(line);
+  return {
+    type: 'section',
+    text: mrkdwnText(line),
+    accessory: {
+      type: 'button',
+      action_id: CONTINUE_TRIP_ACTION_ID,
+      text: { type: 'plain_text', text: 'Continue' },
+      value: JSON.stringify({ conversationId: trip.id } satisfies ContinueTripValue),
+    },
+  };
+}
+
+function describeTripActivity(trip: ConversationSummary, isCurrent: boolean): string {
+  const lastActive = `last active ${tripDateFormat.format(new Date(trip.updatedAt))}`;
+  return isCurrent ? `Current trip · ${lastActive}` : lastActive;
 }
 
 function parseJson<T>(value: string | undefined, schema: z.ZodType<T>): T | undefined {
@@ -307,6 +357,12 @@ function buildActionsBlock(quickReplies: string[]): KnownBlock {
         action_id: NEW_TRIP_ACTION_ID,
         text: { type: 'plain_text', text: ':luggage: New trip', emoji: true },
         value: 'new_trip',
+      },
+      {
+        type: 'button',
+        action_id: MY_TRIPS_ACTION_ID,
+        text: { type: 'plain_text', text: ':card_index_dividers: My trips', emoji: true },
+        value: 'my_trips',
       },
     ],
   };

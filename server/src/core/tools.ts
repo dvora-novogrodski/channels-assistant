@@ -1,7 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { BUDGET_TIERS, REGIONS, SAVED_PAYMENT_METHODS, TAGS, type Destination, type Stay } from '@app/shared';
-import { SEARCH_SORT_ORDERS, findDestination, searchDestinations } from './destinations.js';
+import {
+  BUDGET_TIERS,
+  REGIONS,
+  SAVED_PAYMENT_METHODS,
+  TAGS,
+  type Destination,
+  type DestinationCardView,
+  type Stay,
+} from '@app/shared';
+import { SEARCH_SORT_ORDERS, findDestination, searchDestinations, type DestinationSummary } from './destinations.js';
 import { searchFlights, type FlightOffer } from './flights.js';
 import type { ToolCall, ToolResult, ToolSpec } from './llm/types.js';
 import type { Conversation, Proposal, User, UserPreferences } from './store.js';
@@ -19,7 +27,8 @@ export interface ToolContext {
 
 export type ToolEffect =
   | { type: 'propose'; proposal: Proposal }
-  | { type: 'savePreferences'; preferences: UserPreferences };
+  | { type: 'savePreferences'; preferences: UserPreferences }
+  | { type: 'suggestDestinations'; destinations: DestinationCardView[] };
 
 interface ToolOutcome {
   output: unknown;
@@ -83,8 +92,16 @@ const searchDestinationsTool = defineTool({
     maxDays: z.number().int().positive().optional(),
     sortBy: z.enum(SEARCH_SORT_ORDERS).optional(),
   }),
-  run: (filters) => ({ output: searchDestinations(filters) }),
+  run: (filters) => {
+    const output = searchDestinations(filters);
+    return { output, effect: { type: 'suggestDestinations', destinations: output.results.map(toDestinationCard) } };
+  },
 });
+
+function toDestinationCard(summary: DestinationSummary): DestinationCardView {
+  const { id, name, country, region, budgetTier, dailyCostUsd, bestMonths, tags } = summary;
+  return { id, name, country, region, budgetTier, dailyCostUsd, bestMonths, tags };
+}
 
 const getDestinationTool = defineTool({
   name: 'get_destination',

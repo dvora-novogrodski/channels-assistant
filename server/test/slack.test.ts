@@ -2,7 +2,10 @@ import type { ActionsBlockElement, KnownBlock, SectionBlockAccessory } from '@sl
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   CONFIRM_ACTION_ID,
+  CONTINUE_TRIP_ACTION_ID,
+  MY_TRIPS_ACTION_ID,
   NEW_TRIP_ACTION_ID,
+  NO_EARLIER_TRIPS_TEXT,
   SESSION_HINT,
   buildReplyContent,
   parseActionValue,
@@ -351,5 +354,82 @@ describe('Slack reliability fixes', () => {
     expect(cardUpdates.filter((message) => message.text === 'Booking your trip…')).toHaveLength(4);
     expect(buttonValue(cardUpdates.at(-1)?.blocks, (actionId) => actionId === NEW_TRIP_ACTION_ID)).toBeDefined();
     expect(cardUpdates.at(-1)?.text).not.toContain('Reply "confirm"');
+  });
+});
+
+describe('Slack my trips', () => {
+  let store: InMemoryConversationStore;
+  let llm: ScriptedLlm;
+  let chat: FakeSlackChat;
+  let handlers: ReturnType<typeof createSlackHandlers>;
+
+  beforeEach(() => {
+    store = new InMemoryConversationStore();
+    llm = new ScriptedLlm();
+    chat = new FakeSlackChat();
+    const assistant = new TripAssistant({ store, llm, now: () => new Date('2027-01-10T12:00:00Z') });
+    handlers = createSlackHandlers({ service: new TravelService({ store, assistant }), log: SILENT_LOG, pause: () => Promise.resolve() });
+  });
+
+  async function startTwoTrips() {
+    llm.then(textReply('Lisbon is lovely.'), textReply('Tokyo in spring!'));
+    await handlers.handleMessage(dm('Lisbon in May', { ts: '100.001' }), chat);
+    await handlers.handleMessage(dm('new trip', { ts: '200.000' }), chat);
+    await handlers.handleMessage(dm('Tokyo in April', { ts: '200.001' }), chat);
+  }
+
+  it('offers a My trips button next to New trip', async () => {
+    llm.then(textReply('Hello'));
+    await handlers.handleMessage(dm('Hi'), chat);
+
+    expect(buttonValue(chat.sent.at(-1)?.blocks, (actionId) => actionId === MY_TRIPS_ACTION_ID)).toBeDefined();
+  });
+
+  it('lists earlier trips with Continue and marks the current one', async () => {
+    await startTwoTrips();
+
+    await handlers.handleMessage(dm('my trips', { ts: '300.000' }), chat);
+
+    const list = chat.sent.at(-1);
+    expect(list?.text).toContain('Lisbon in May');
+    expect(list?.text).toContain('Tokyo in April');
+    const continueValues = buttons(list?.blocks)
+      .filter((element) => element.type === 'button' && element.action_id === CONTINUE_TRIP_ACTION_ID)
+      .map((element) => (element.type === 'button' ? element.value : undefined));
+    expect(continueValues).toEqual([JSON.stringify({ conversationId: 'slack:D123:100.001' })]);
+    expect(JSON.stringify(list?.blocks)).toContain('Current trip');
+  });
+
+  it('continues an earlier trip with its history', async () => {
+    await startTwoTrips();
+    llm.then(textReply('Pack light layers for Lisbon.'));
+
+    const value = JSON.stringify({ conversationId: 'slack:D123:100.001' });
+    await handlers.handleContinueTrip({ userId: 'U1', channel: CHANNEL, actionTs: '300.100', value }, chat);
+    await handlers.handleContinueTrip({ userId: 'U1', channel: CHANNEL, actionTs: '300.100', value }, chat);
+    await handlers.handleMessage(dm('What should I pack?', { ts: '300.200' }), chat);
+
+    expect(chat.sent.filter(({ text }) => text.includes('Back to: Lisbon in May'))).toHaveLength(1);
+    expect(llm.requests.at(-1)?.messages.map((message) => (message.role === 'user' ? message.text : message.role))).toEqual([
+      'Lisbon in May',
+      'assistant',
+      'What should I pack?',
+    ]);
+    expect(store.listMessages('slack:U1', 'slack:D123:100.001')).toHaveLength(4);
+  });
+
+  it("does not continue another user's trip", async () => {
+    await startTwoTrips();
+
+    const value = JSON.stringify({ conversationId: 'slack:D123:100.001' });
+    await handlers.handleContinueTrip({ userId: 'U2', channel: CHANNEL, actionTs: '400.000', value }, chat);
+
+    expect(chat.sent.at(-1)?.text).toContain('no longer available');
+  });
+
+  it('explains when there are no trips yet', async () => {
+    await handlers.handleMyTrips({ userId: 'U1', channel: CHANNEL, actionTs: '500.000' }, chat);
+
+    expect(chat.sent.at(-1)?.text).toBe(NO_EARLIER_TRIPS_TEXT);
   });
 });

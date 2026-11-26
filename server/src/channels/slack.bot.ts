@@ -9,7 +9,14 @@ import {
 } from '@slack/bolt';
 import type { ProposalDecision } from '@app/shared';
 import type { TravelService } from '../core/travelService.js';
-import { CANCEL_ACTION_ID, CONFIRM_ACTION_ID, NEW_TRIP_ACTION_ID, QUICK_REPLY_ACTION_PREFIX } from './slack.blocks.js';
+import {
+  CANCEL_ACTION_ID,
+  CONFIRM_ACTION_ID,
+  CONTINUE_TRIP_ACTION_ID,
+  MY_TRIPS_ACTION_ID,
+  NEW_TRIP_ACTION_ID,
+  QUICK_REPLY_ACTION_PREFIX,
+} from './slack.blocks.js';
 import { createSlackHandlers, type SlackActionClick, type SlackChat } from './slack.handlers.js';
 
 interface SlackBotSettings {
@@ -69,6 +76,8 @@ export async function startSlackBot({ botToken, appToken, service }: SlackBotSet
   }
   app.action<BlockAction<ButtonAction>>(new RegExp(`^${QUICK_REPLY_ACTION_PREFIX}`), onButtonClick(handlers.handleQuickReply));
   app.action<BlockAction<ButtonAction>>(NEW_TRIP_ACTION_ID, onButtonClick(handlers.handleNewTrip));
+  app.action<BlockAction<ButtonAction>>(MY_TRIPS_ACTION_ID, onButtonClick(handlers.handleMyTrips));
+  app.action<BlockAction<ButtonAction>>(CONTINUE_TRIP_ACTION_ID, onButtonClick(handlers.handleContinueTrip));
 
   app.error(async (error) => {
     console.error('Slack app error', error);

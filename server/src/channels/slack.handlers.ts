@@ -14,7 +14,10 @@ import {
   buildBookingProgressContent,
   buildNewTripContent,
   buildReplyContent,
+  buildTripListContent,
+  buildTripResumedContent,
   parseActionValue,
+  parseContinueTripValue,
   parseQuickReplyValue,
   toSlackMrkdwn,
   type SlackMessageContent,
@@ -25,7 +28,9 @@ export const DELIVERY_FAILED_TEXT =
   ":warning: I couldn't show my last answer here. Please send your message again, or ask for a shorter answer.";
 const PROPOSAL_UNAVAILABLE_TEXT = 'That proposal is no longer available. Ask me to prepare a new one.';
 const MAX_TRACKED_CARDS = 500;
+const TRIP_UNAVAILABLE_TEXT = 'That trip is no longer available. Type *my trips* to see your trips.';
 const NEW_TRIP_PATTERN = /^(new trip|start over|new chat)[.!]*$/i;
+const MY_TRIPS_PATTERN = /^(my trips|trips|earlier trips|previous trips)[.!?]*$/i;
 
 export interface SlackChat {
   postMessage(message: { channel: string; thread_ts?: string; text: string; blocks?: KnownBlock[] }): Promise<{ ts?: string }>;
@@ -185,6 +190,29 @@ export function createSlackHandlers({ service, seenEvents = new SeenEvents(), lo
     await post('post new trip', chat, { channel, ...buildNewTripContent() });
   }
 
+  function listChannelTrips(slackUserId: string, channel: string) {
+    const channelPrefix = toSlackConversationId(channel, '');
+    return service.listConversations(toSlackOwnerId(slackUserId)).filter(({ id }) => id.startsWith(channelPrefix));
+  }
+
+  function currentConversationId(channel: string): string | undefined {
+    const sessionTs = currentSessions.get(channel);
+    return sessionTs ? toSlackConversationId(channel, sessionTs) : undefined;
+  }
+
+  async function showMyTrips(channel: string, slackUserId: string, chat: SlackChat): Promise<void> {
+    const content = buildTripListContent(listChannelTrips(slackUserId, channel), currentConversationId(channel));
+    await post('post my trips', chat, { channel, ...content });
+  }
+
+  async function continueTrip(channel: string, slackUserId: string, conversationId: string, chat: SlackChat): Promise<void> {
+    const trip = listChannelTrips(slackUserId, channel).find(({ id }) => id === conversationId);
+    if (!trip) return postText('post trip unavailable', chat, channel, TRIP_UNAVAILABLE_TEXT);
+
+    currentSessions.set(channel, trip.id.slice(toSlackConversationId(channel, '').length));
+    await post('post trip resumed', chat, { channel, ...buildTripResumedContent(trip) });
+  }
+
   async function showReply(
     chat: SlackChat,
     channel: string,
@@ -249,7 +277,19 @@ export function createSlackHandlers({ service, seenEvents = new SeenEvents(), lo
 
     const { channel, ts, user, text } = directMessage;
     if (NEW_TRIP_PATTERN.test(text)) return startNewTrip(channel, ts, chat);
+    if (MY_TRIPS_PATTERN.test(text)) return showMyTrips(channel, user, chat);
     await runTurn(channel, ts, user, text, chat);
+  }
+
+  async function handleMyTrips(click: SlackActionClick, chat: SlackChat): Promise<void> {
+    if (!isFirstDelivery(actionEventKey(click))) return;
+    await showMyTrips(click.channel, click.userId, chat);
+  }
+
+  async function handleContinueTrip(click: SlackActionClick, chat: SlackChat): Promise<void> {
+    const continueValue = parseOrWarn(parseContinueTripValue(click.value), 'continue trip button');
+    if (!continueValue || !isFirstDelivery(actionEventKey(click))) return;
+    await continueTrip(click.channel, click.userId, continueValue.conversationId, chat);
   }
 
   async function handleQuickReply(click: SlackActionClick, chat: SlackChat): Promise<void> {
@@ -277,5 +317,5 @@ export function createSlackHandlers({ service, seenEvents = new SeenEvents(), lo
     if (changed || reply.error) await postText('post decision reply', chat, click.channel, toSlackMrkdwn(reply.text));
   }
 
-  return { handleMessage, handleButtonClick, handleQuickReply, handleNewTrip };
+  return { handleMessage, handleButtonClick, handleQuickReply, handleNewTrip, handleMyTrips, handleContinueTrip };
 }

@@ -1,7 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { z } from 'zod';
 import {
-  SAVED_PAYMENT_METHODS,
   type ChatMessage,
   type DestinationCardView,
   type ErrorKind,
@@ -11,6 +9,7 @@ import {
 } from '@app/shared';
 import { NotFoundError } from './errors.js';
 import { LlmError, type Llm, type LlmMessage, type LlmReply } from './llm/types.js';
+import { MAX_QUICK_REPLY_LENGTH, buildSystemPrompt } from './prompt.js';
 import { decide, parseDecision } from './proposals.js';
 import type { Conversation, ConversationStore, Proposal, StoredMessage, UserPreferences } from './store.js';
 import { executeToolCall, toolSpecs, type ToolContext, type ToolEffect } from './tools.js';
@@ -19,7 +18,6 @@ import { TurnLock } from './turnLock.js';
 export const MAX_TOOL_STEPS = 6;
 export const HISTORY_WINDOW = 24;
 export const MAX_QUICK_REPLIES = 3;
-export const MAX_QUICK_REPLY_LENGTH = 40;
 export const DEMO_FAILURE_TRIGGER = 'simulate failure';
 
 const ERROR_REPLIES: Record<ErrorKind, { text: string; retryable: boolean }> = {
@@ -143,7 +141,7 @@ export class TripAssistant {
     const { proposal, superseded, preferences } = summarizeEffects(conversation, effects);
     const { text: extractedText, quickReplies } = extractQuickReplies(finalReply.text ?? '');
     const replyText = extractedText || defaultReplyText(proposal);
-    const destinations = proposal ? undefined : findSuggestedDestinations(turnMessages);
+    const destinations = proposal ? undefined : latestSuggestedDestinations(effects);
     const reply = { ...this.message('assistant', replyText, proposal?.id), quickReplies, destinations };
 
     this.store.commit(userId, conversation.id, {
@@ -212,28 +210,9 @@ function describeButtonPress(decision: ProposalDecision, proposal: Proposal): st
   return `(I pressed ${decision === 'confirm' ? 'Confirm' : 'Cancel'} on the ${proposal.destinationName} proposal.)`;
 }
 
-const SearchOutputSchema = z.object({
-  results: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      country: z.string(),
-      region: z.string(),
-      budgetTier: z.string(),
-      dailyCostUsd: z.number(),
-      bestMonths: z.array(z.number()),
-      tags: z.array(z.string()),
-    }),
-  ),
-});
-
-export function findSuggestedDestinations(turnMessages: LlmMessage[]): DestinationCardView[] | undefined {
-  const searchResults = turnMessages
-    .flatMap((message) => (message.role === 'tool' ? message.results : []))
-    .filter(({ name, isError }) => name === 'search_destinations' && !isError);
-  const parsed = SearchOutputSchema.safeParse(searchResults.at(-1)?.output);
-  if (!parsed.success || parsed.data.results.length === 0) return undefined;
-  return parsed.data.results;
+function latestSuggestedDestinations(effects: ToolEffect[]): DestinationCardView[] | undefined {
+  const latest = effects.flatMap((effect) => (effect.type === 'suggestDestinations' ? [effect.destinations] : [])).at(-1);
+  return latest?.length ? latest : undefined;
 }
 
 export function extractQuickReplies(text: string): { text: string; quickReplies?: string[] } {
@@ -269,38 +248,4 @@ function defaultReplyText(proposal: Proposal | undefined): string {
 
 function withoutProposalId({ proposalId: _proposalId, ...message }: StoredMessage): ChatMessage {
   return message;
-}
-
-function describePreferences(preferences: UserPreferences): string {
-  const known = [
-    preferences.homeAirport && `home airport ${preferences.homeAirport}`,
-    preferences.travelers && `usually ${preferences.travelers} traveler(s)`,
-    preferences.budgetTier && `${preferences.budgetTier} budget`,
-    preferences.interests?.length && `likes ${preferences.interests.join(', ')}`,
-  ].filter(Boolean);
-  return known.length ? `Known about this user: ${known.join('; ')}. Use these as defaults.` : 'No saved preferences yet.';
-}
-
-function buildSystemPrompt(today: string, preferences: UserPreferences): string {
-  return [
-    'You are Travel Assistant: a warm, knowledgeable travel planner who helps people choose a destination and books trip packages (flight + stay) for them.',
-    `Today is ${today}. Turn relative dates ("this week", "next month", "in spring") into concrete dates based on today.`,
-    describePreferences(preferences),
-    '',
-    'Freedom: answer general travel questions from your own knowledge (itineraries, what to pack, food, culture, typical weather, getting around, safety tips). For visas and entry rules, give a short reminder to check official sources.',
-    'Grounding: anything bookable comes only from tools. Destinations you can book, stays, flights and every price must come from tool results; never invent them. If a place is not in the catalog, say you cannot book it yet and suggest similar catalog destinations.',
-    '',
-    'Tools:',
-    '- search_destinations to find options (use month for seasons, remember the southern hemisphere; sortBy "price" for cheapest). The app shows the search results as cards with name, price per day and tags, so do not repeat those details: write a short intro and your personal recommendation of one or two places and why.',
-    '- get_destination before describing a place in detail or choosing a stay; it lists stays with their ids.',
-    '- search_flights needs the user\'s departure airport (3-letter code). Always include the compareUrl as a Markdown link like [Compare prices on Google Flights](url).',
-    '- propose_trip once destination, start date, nights and travelers are known (use saved preferences as defaults). Include the flight when you know the departure airport and the user wants one.',
-    '- save_preferences when the user mentions their home city/airport, usual group size, budget style or interests.',
-    '',
-    `Booking and payment: propose_trip does NOT book. The card it creates shows the total and lets the user pay with a saved card (${SAVED_PAYMENT_METHODS[0].label} by default, or another saved card); the user confirms with the button or by replying "confirm". Never ask for card details; if the user offers them, tell them not to share card details and that their saved card is used. Never say a trip is booked unless list_bookings shows it.`,
-    'If a tool returns an error, fix the arguments or explain the problem. If key details are missing, ask one short question.',
-    '',
-    'Style: friendly and specific, like a good travel agent. Use short paragraphs and bullet lists, bold destination names, prices as rough USD estimates. Aim for under 160 words unless the user asks for an itinerary or more detail.',
-    `End every reply with one last line in exactly this format, with 2-3 short follow-ups the user might send next (max ${MAX_QUICK_REPLY_LENGTH} characters each): Quick replies: option one | option two | option three`,
-  ].join('\n');
 }
