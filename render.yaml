@@ -3,7 +3,7 @@ services:
     name: travel-assistant
     runtime: node
     plan: free
-    branch: main
+    branch: master
     autoDeployTrigger: commit
     buildCommand: npm ci && npm run build
     startCommand: npm run start:hosted -w server
