@@ -8,7 +8,7 @@ A travel assistant that helps you choose a destination, finds flights and stays,
 |---|---|
 | **Web** | <https://travel-assistant-caod.onrender.com> |
 | **Slack** | Join the workspace with [this invite link](https://join.slack.com/t/the-travel-agent/shared_invite/zt-4hwisjpmt-oVclopSUzLsq5g5LyvcwLQ), then open **Apps → Travel Assistant** and send a direct message. |
-| **Demo video** | _link to be added_ |
+| **Demo video** | [Watch the demo](https://github.com/dvora-novogrodski/channels-assistant/releases/download/demo-video/travel-assistant-demo.mp4): both interfaces, a contextual follow-up, a booking, and a failure with recovery ([release page](https://github.com/dvora-novogrodski/channels-assistant/releases/tag/demo-video)) |
 
 Things to try (web or Slack):
 
