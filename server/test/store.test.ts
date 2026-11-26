@@ -1,11 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { NotFoundError } from '../src/core/errors.js';
-import {
-  DEFAULT_TITLE,
-  InMemoryConversationStore,
-  MAX_SEEN_EVENTS,
-  type StoredMessage,
-} from '../src/core/store.js';
+import { DEFAULT_TITLE, InMemoryConversationStore, type StoredMessage } from '../src/core/store.js';
 import { sampleProposal } from './fixtures.js';
 
 const ALICE = 'web:alice';
@@ -33,6 +28,7 @@ describe('InMemoryConversationStore', () => {
 
       expect(() => store.getConversation(BOB, conversation.id)).toThrow(NotFoundError);
       expect(() => store.listMessages(BOB, conversation.id)).toThrow(NotFoundError);
+      expect(() => store.commit(BOB, conversation.id, { messages: [userMessage('hi')] })).toThrow(NotFoundError);
       expect(store.listConversations(BOB)).toEqual([]);
     });
 
@@ -43,7 +39,8 @@ describe('InMemoryConversationStore', () => {
     });
 
     it('keeps bookings per user', () => {
-      store.getUser(ALICE).bookings.push({ ...sampleProposal(), bookingRef: 'TRV-1', confirmedAt: '' });
+      const conversation = store.createConversation(ALICE);
+      store.commit(ALICE, conversation.id, { booking: { ...sampleProposal(), bookingRef: 'TRV-1', confirmedAt: '' } });
 
       expect(store.getUser(BOB).bookings).toEqual([]);
       expect(store.getUser(ALICE).bookings).toHaveLength(1);
@@ -55,13 +52,13 @@ describe('InMemoryConversationStore', () => {
       const first = store.getOrCreateConversation(ALICE, 'slack:D1:111.222');
       const second = store.getOrCreateConversation(ALICE, 'slack:D1:111.222');
 
-      expect(second).toBe(first);
+      expect(second).toEqual(first);
     });
 
     it('lists conversations most recently updated first', () => {
       const older = store.createConversation(ALICE);
       const newer = store.createConversation(ALICE);
-      store.appendMessage(older, userMessage('bump'));
+      store.commit(ALICE, older.id, { messages: [userMessage('bump')] });
 
       expect(store.listConversations(ALICE).map(({ id }) => id)).toEqual([older.id, newer.id]);
     });
@@ -70,44 +67,85 @@ describe('InMemoryConversationStore', () => {
       const conversation = store.createConversation(ALICE);
       expect(conversation.title).toBe(DEFAULT_TITLE);
 
-      store.appendMessage(conversation, userMessage('Somewhere warm for a long weekend in March, please'));
-      store.appendMessage(conversation, userMessage('second message'));
+      store.commit(ALICE, conversation.id, {
+        messages: [userMessage('Somewhere warm for a long weekend in March, please'), userMessage('second message')],
+      });
 
-      expect(conversation.title).toBe('Somewhere warm for a long weekend in Ma…');
+      expect(store.getConversation(ALICE, conversation.id).title).toBe('Somewhere warm for a long weekend in Ma…');
     });
 
     it('shows the current proposal status on the message that carries it', () => {
       const conversation = store.createConversation(ALICE);
       const proposal = sampleProposal();
-      conversation.proposals.push(proposal);
-      store.appendMessage(conversation, {
-        id: 'm-1',
-        role: 'assistant',
-        text: 'Here is your trip',
-        createdAt: '',
-        proposalId: proposal.id,
+      store.commit(ALICE, conversation.id, {
+        proposals: [proposal],
+        messages: [{ id: 'm-1', role: 'assistant', text: 'Here is your trip', createdAt: '', proposalId: proposal.id }],
       });
 
-      proposal.status = 'confirmed';
+      store.commit(ALICE, conversation.id, { proposals: [{ ...proposal, status: 'confirmed' }] });
 
       const [message] = store.listMessages(ALICE, conversation.id);
       expect(message?.proposal?.status).toBe('confirmed');
+      expect(store.getConversation(ALICE, conversation.id).proposals).toHaveLength(1);
     });
   });
 
-  describe('markEventSeen', () => {
-    it('accepts an event once and rejects duplicates', () => {
-      expect(store.markEventSeen('D1:111.222')).toBe(true);
-      expect(store.markEventSeen('D1:111.222')).toBe(false);
+  describe('commit', () => {
+    it('applies history, messages, proposals, preferences and a booking together', () => {
+      const conversation = store.createConversation(ALICE);
+      const proposal = sampleProposal();
+
+      store.commit(ALICE, conversation.id, {
+        llmMessages: [{ role: 'user', text: 'Book Lisbon' }],
+        messages: [userMessage('Book Lisbon')],
+        proposals: [proposal],
+        preferences: { homeAirport: 'TLV' },
+        booking: { ...proposal, bookingRef: 'TRV-1', confirmedAt: '' },
+      });
+
+      const saved = store.getConversation(ALICE, conversation.id);
+      expect(saved.llmHistory).toEqual([{ role: 'user', text: 'Book Lisbon' }]);
+      expect(saved.messages.map(({ text }) => text)).toEqual(['Book Lisbon']);
+      expect(saved.proposals.map(({ id }) => id)).toEqual([proposal.id]);
+      expect(store.getUser(ALICE)).toMatchObject({ preferences: { homeAirport: 'TLV' }, bookings: [{ bookingRef: 'TRV-1' }] });
     });
 
-    it('forgets the oldest events beyond the cap', () => {
-      for (let index = 0; index <= MAX_SEEN_EVENTS; index++) {
-        store.markEventSeen(`event-${index}`);
-      }
+    it('merges preferences with what was saved before', () => {
+      const conversation = store.createConversation(ALICE);
+      store.commit(ALICE, conversation.id, { preferences: { homeAirport: 'TLV' } });
+      store.commit(ALICE, conversation.id, { preferences: { travelers: 2 } });
 
-      expect(store.markEventSeen('event-0')).toBe(true);
-      expect(store.markEventSeen(`event-${MAX_SEEN_EVENTS}`)).toBe(false);
+      expect(store.getUser(ALICE).preferences).toEqual({ homeAirport: 'TLV', travelers: 2 });
+    });
+  });
+
+  describe('returns copies', () => {
+    it('ignores changes made to a conversation that was read', () => {
+      const conversation = store.createConversation(ALICE);
+      conversation.messages.push(userMessage('not saved'));
+      conversation.proposals.push(sampleProposal());
+      conversation.title = 'changed outside';
+
+      const saved = store.getConversation(ALICE, conversation.id);
+      expect(saved).toMatchObject({ messages: [], proposals: [], title: DEFAULT_TITLE });
+    });
+
+    it('ignores changes made to a user that was read', () => {
+      const user = store.getUser(ALICE);
+      user.bookings.push({ ...sampleProposal(), bookingRef: 'TRV-1', confirmedAt: '' });
+      user.preferences.homeAirport = 'TLV';
+
+      expect(store.getUser(ALICE)).toEqual({ id: ALICE, bookings: [], preferences: {} });
+    });
+
+    it('ignores changes made to committed data after the commit', () => {
+      const conversation = store.createConversation(ALICE);
+      const proposal = sampleProposal();
+      store.commit(ALICE, conversation.id, { proposals: [proposal] });
+
+      proposal.status = 'confirmed';
+
+      expect(store.getConversation(ALICE, conversation.id).proposals[0]?.status).toBe('proposed');
     });
   });
 });

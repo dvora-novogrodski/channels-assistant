@@ -23,6 +23,10 @@ describe('TripAssistant', () => {
     conversation = store.createConversation(ALICE);
   });
 
+  function stored(): Conversation {
+    return store.getConversation(ALICE, conversation.id);
+  }
+
   function createAssistant(llm: ScriptedLlm, options: { demoFailures?: boolean } = {}) {
     return new TripAssistant({ store, llm, now: () => TODAY, ...options });
   }
@@ -55,7 +59,7 @@ describe('TripAssistant', () => {
     const failed = await assistant.handleMessage(ALICE, conversation.id, 'Hello?');
 
     expect(failed.reply.error).toEqual({ kind: 'unavailable', retryable: true });
-    expect(conversation.llmHistory).toEqual([]);
+    expect(stored().llmHistory).toEqual([]);
     expect(store.listMessages(ALICE, conversation.id)).toEqual([]);
 
     const retried = await assistant.handleMessage(ALICE, conversation.id, 'Hello?');
@@ -95,8 +99,8 @@ describe('TripAssistant', () => {
     const { reply } = await createAssistant(llm).handleMessage(ALICE, conversation.id, 'Book Lisbon');
 
     expect(reply.error?.kind).toBe('unavailable');
-    expect(conversation.proposals).toEqual([]);
-    expect(conversation.llmHistory).toEqual([]);
+    expect(stored().proposals).toEqual([]);
+    expect(stored().llmHistory).toEqual([]);
   });
 
   it('attaches a proposal to the reply without creating a booking', async () => {
@@ -126,7 +130,7 @@ describe('TripAssistant', () => {
 
     expect(second.updatedProposal).toMatchObject({ id: first.reply.proposal?.id, status: 'superseded' });
     expect(second.reply.proposal).toMatchObject({ nights: 4, status: 'proposed' });
-    expect(conversation.proposals.map(({ status }) => status)).toEqual(['superseded', 'proposed']);
+    expect(stored().proposals.map(({ status }) => status)).toEqual(['superseded', 'proposed']);
   });
 
   it('rejects a second message while a turn is in progress', async () => {
@@ -140,7 +144,28 @@ describe('TripAssistant', () => {
 
     expect(reply.error).toEqual({ kind: 'busy', retryable: true });
     expect((await firstTurn).reply.text).toBe('Done with first');
-    expect(conversation.busy).toBe(false);
+    llm.then(textReply('Third goes through'));
+    expect((await assistant.handleMessage(ALICE, conversation.id, 'Third')).reply.text).toBe('Third goes through');
+  });
+
+  it('rejects a button decision while a turn is in progress', async () => {
+    let finishProposalTurn: (reply: LlmReply) => void = () => {};
+    const llm = new ScriptedLlm(
+      toolReply({ name: 'propose_trip', args: LISBON_BOOKING }),
+      textReply('Here is Lisbon.'),
+      () => new Promise<LlmReply>((resolve) => (finishProposalTurn = resolve)),
+    );
+    const assistant = createAssistant(llm);
+    const { reply } = await assistant.handleMessage(ALICE, conversation.id, 'Book Lisbon');
+    const proposalId = reply.proposal?.id ?? '';
+
+    const runningTurn = assistant.handleMessage(ALICE, conversation.id, 'Any tips?');
+    const blocked = assistant.resolveProposal(ALICE, conversation.id, proposalId, 'confirm');
+    finishProposalTurn(textReply('Pack light.'));
+    await runningTurn;
+
+    expect(blocked).toMatchObject({ changed: false, reply: { error: { kind: 'busy' } } });
+    expect(store.getUser(ALICE).bookings).toEqual([]);
   });
 
   it('stops after too many tool steps without saving anything', async () => {
@@ -150,7 +175,7 @@ describe('TripAssistant', () => {
     const { reply } = await createAssistant(llm).handleMessage(ALICE, conversation.id, 'Anything');
 
     expect(reply.error?.kind).toBe('internal');
-    expect(conversation.llmHistory).toEqual([]);
+    expect(stored().llmHistory).toEqual([]);
   });
 
   it('simulates an outage only when demo failures are enabled', async () => {

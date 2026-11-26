@@ -11,8 +11,7 @@ import type {
   SendMessageRequest,
   SendMessageResponse,
 } from '@app/shared';
-import type { TripAssistant } from '../core/assistant.js';
-import type { ConversationStore } from '../core/store.js';
+import type { TravelService } from '../core/travelService.js';
 import { parseRequest } from '../http/parseRequest.js';
 
 export const MAX_MESSAGE_LENGTH = 2000;
@@ -37,43 +36,42 @@ const ConversationParamsSchema = z.object({ conversationId: z.string().min(1) })
 const ProposalParamsSchema = ConversationParamsSchema.extend({ proposalId: z.string().min(1) });
 
 interface WebRouterDependencies {
-  store: ConversationStore;
-  assistant: TripAssistant;
+  service: TravelService;
 }
 
 function toWebOwnerId(userId: string): string {
   return `web:${userId}`;
 }
 
-export function createWebRouter({ store, assistant }: WebRouterDependencies): Router {
+export function createWebRouter({ service }: WebRouterDependencies): Router {
   const router = Router();
 
   router.get('/conversations', (req, res: Response<ConversationSummary[]>) => {
     const { userId } = parseRequest(UserQuerySchema, req.query);
-    res.json(store.listConversations(toWebOwnerId(userId)));
+    res.json(service.listConversations(toWebOwnerId(userId)));
   });
 
   router.get('/bookings', (req, res: Response<BookingView[]>) => {
     const { userId } = parseRequest(UserQuerySchema, req.query);
-    res.json([...store.getUser(toWebOwnerId(userId)).bookings].reverse());
+    res.json(service.listBookings(toWebOwnerId(userId)));
   });
 
   router.post('/conversations', (req, res: Response<ConversationSummary>) => {
     const { userId } = parseRequest(CreateConversationSchema, req.body);
-    const { id, title, updatedAt } = store.createConversation(toWebOwnerId(userId));
-    res.status(201).json({ id, title, updatedAt });
+    const summary = service.startConversation(toWebOwnerId(userId));
+    res.status(201).json(summary);
   });
 
   router.get('/conversations/:conversationId/messages', (req, res: Response<ChatMessage[]>) => {
     const { conversationId } = parseRequest(ConversationParamsSchema, req.params);
     const { userId } = parseRequest(UserQuerySchema, req.query);
-    res.json(store.listMessages(toWebOwnerId(userId), conversationId));
+    res.json(service.listMessages(toWebOwnerId(userId), conversationId));
   });
 
   router.post('/conversations/:conversationId/messages', async (req, res: Response<SendMessageResponse>) => {
     const { conversationId } = parseRequest(ConversationParamsSchema, req.params);
     const { userId, text } = parseRequest(SendMessageSchema, req.body);
-    res.json(await assistant.handleMessage(toWebOwnerId(userId), conversationId, text));
+    res.json(await service.sendMessage(toWebOwnerId(userId), conversationId, text));
   });
 
   router.post(
@@ -81,7 +79,7 @@ export function createWebRouter({ store, assistant }: WebRouterDependencies): Ro
     (req, res: Response<ResolveProposalResponse>) => {
       const { conversationId, proposalId } = parseRequest(ProposalParamsSchema, req.params);
       const { userId, decision, paymentMethodId } = parseRequest(ResolveProposalSchema, req.body);
-      res.json(assistant.resolveProposal(toWebOwnerId(userId), conversationId, proposalId, decision, paymentMethodId));
+      res.json(service.resolveProposal(toWebOwnerId(userId), conversationId, proposalId, decision, paymentMethodId));
     },
   );
 

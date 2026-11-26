@@ -10,6 +10,7 @@ import { createApp } from '../src/app.js';
 import { TripAssistant } from '../src/core/assistant.js';
 import { LlmError } from '../src/core/llm/types.js';
 import { InMemoryConversationStore } from '../src/core/store.js';
+import { TravelService } from '../src/core/travelService.js';
 import { ScriptedLlm, textReply, toolReply } from './scriptedLlm.js';
 
 const ALICE = randomUUID();
@@ -26,7 +27,7 @@ afterEach(() => {
 async function startServer(llm = new ScriptedLlm(), webDistPath?: string) {
   const store = new InMemoryConversationStore();
   const assistant = new TripAssistant({ store, llm, now: () => TODAY });
-  server = createApp({ store, assistant, webDistPath }).listen(0);
+  server = createApp({ service: new TravelService({ store, assistant }), webDistPath }).listen(0);
   await new Promise<void>((resolve) => server?.once('listening', resolve));
   const { port } = server.address() as AddressInfo;
   const baseUrl = `http://127.0.0.1:${port}`;

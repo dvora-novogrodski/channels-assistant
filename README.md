@@ -32,7 +32,7 @@ The service runs on Render's free tier. If it has been idle, the first request c
 | Follow-ups and isolated users | History per conversation, bookings per user, ownership checked on every read (`store.ts`). In-memory storage, limits documented below. |
 | LLM with tools | Gemini with six tools: search destinations, destination details, search flights, propose trip, list bookings, save preferences (`tools.ts`). |
 | Graceful LLM / tool / delivery failures | LLM errors become chat messages with a retry; tool errors go back to the model; a Slack message Slack rejects is replaced by a clear notice. |
-| Focused tests | 127 Vitest tests, including isolation, follow-up context, failures and duplicate events (see [Tests](#tests)). |
+| Focused tests | 133 Vitest tests, including isolation, follow-up context, failures and duplicate events (see [Tests](#tests)). |
 | Nice-to-haves | **Clear action confirmation** (proposal → confirm/cancel → booked, proposed vs completed clearly different) and **channel-native interactions** (cards, buttons, quick replies, text fallback "confirm"). |
 
 ## What it does
@@ -75,7 +75,7 @@ web/               React + TypeScript + Mantine chat UI
 docs/              Decision log, Slack setup, deployment
 ```
 
-`core/` never imports a channel. Adding a channel means one adapter that turns platform events into `assistant.handleMessage(userId, conversationId, text)` and `assistant.resolveProposal(...)` calls.
+`core/` never imports a channel. Channels talk to core only through `TravelService` (`core/travelService.ts`), so adding a channel means one adapter that turns platform events into `service.sendMessage(userId, conversationId, text)` and `service.resolveProposal(...)` calls. The store hands out copies and saves each turn or decision in a single `commit`, so a database can replace it without changing the assistant.
 
 **Start reading the code with [docs/decisions.md](docs/decisions.md)**: it lists the files in reading order and the reasoning behind every major decision.
 
@@ -112,7 +112,7 @@ Production-style: `npm run build`, then `npm start`. This serves the built web a
 
 | Script | Purpose |
 |---|---|
-| `npm test` | Vitest suites (127 tests, no network) |
+| `npm test` | Vitest suites (133 tests, no network) |
 | `npm run typecheck` | Strict TypeScript across all workspaces |
 | `npm run smoke:gemini -w server` | One real Gemini tool-call round trip |
 | `npm run smoke:assistant -w server` | A real multi-turn conversation through the assistant |
@@ -128,7 +128,7 @@ Production-style: `npm run build`, then `npm start`. This serves the built web a
 | `assistant.test.ts` | Follow-up context, LLM failure saves nothing and recovers, rate limits, tool failure fed back, no orphan proposal on failure, supersede, busy rejection, step cap, history window, preferences, quick replies, destination cards |
 | `proposals.test.ts` | Booking only after confirmation, idempotent double confirm, cancel, replaced proposals can't be booked, ownership, typed `confirm`, chosen payment card |
 | `tickets.test.ts` | E-tickets and seats per traveler, overnight arrivals, return flight after check-out, hotel voucher |
-| `store.test.ts` | Conversation isolation between users, bookings per user, titles, duplicate-event set |
+| `store.test.ts`, `seenEvents.test.ts` | Conversation isolation between users, bookings per user, titles, single commit, reads return copies, duplicate-event set |
 | `slack.test.ts` | Flat chat and New trip, duplicate events and clicks processed once, card updates and booking progress, delivery-failure notice, long-reply splitting, mrkdwn escaping, token validation |
 | `webApi.test.ts` | Real HTTP: per-user lists, bookings, 400/404/malformed JSON, LLM failure as a chat message, SPA fallback |
 | `gemini.test.ts`, `tools.test.ts`, `destinations.test.ts` | Message and error mapping, fallback/retry, tool validation, flights, packages, search filters and sorting |

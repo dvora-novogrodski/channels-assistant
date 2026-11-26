@@ -5,6 +5,7 @@ import { loadConfig } from './config.js';
 import { TripAssistant } from './core/assistant.js';
 import { createGeminiLlm } from './core/llm/gemini.js';
 import { InMemoryConversationStore } from './core/store.js';
+import { TravelService } from './core/travelService.js';
 
 const config = loadConfig();
 
@@ -15,10 +16,10 @@ const llm = createGeminiLlm({
   fallbackModel: config.LLM_FALLBACK_MODEL,
 });
 const assistant = new TripAssistant({ store, llm, demoFailures: config.DEMO_FAILURES });
+const service = new TravelService({ store, assistant });
 
 const app = createApp({
-  store,
-  assistant,
+  service,
   webDistPath: path.resolve(import.meta.dirname, '../../web/dist'),
 });
 
@@ -28,7 +29,7 @@ app.listen(config.PORT, () => {
 });
 
 if (config.SLACK_BOT_TOKEN && config.SLACK_APP_TOKEN) {
-  startSlackBot({ botToken: config.SLACK_BOT_TOKEN, appToken: config.SLACK_APP_TOKEN, store, assistant })
+  startSlackBot({ botToken: config.SLACK_BOT_TOKEN, appToken: config.SLACK_APP_TOKEN, service })
     .then(() => console.log('Slack bot connected (Socket Mode)'))
     .catch((error: unknown) => console.error('Slack bot failed to start; the web app keeps running.', error));
 } else {

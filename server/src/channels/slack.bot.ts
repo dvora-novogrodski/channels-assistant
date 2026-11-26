@@ -8,16 +8,14 @@ import {
   type webApi,
 } from '@slack/bolt';
 import type { ProposalDecision } from '@app/shared';
-import type { TripAssistant } from '../core/assistant.js';
-import type { ConversationStore } from '../core/store.js';
+import type { TravelService } from '../core/travelService.js';
 import { CANCEL_ACTION_ID, CONFIRM_ACTION_ID, NEW_TRIP_ACTION_ID, QUICK_REPLY_ACTION_PREFIX } from './slack.blocks.js';
 import { createSlackHandlers, type SlackActionClick, type SlackChat } from './slack.handlers.js';
 
 interface SlackBotSettings {
   botToken: string;
   appToken: string;
-  store: ConversationStore;
-  assistant: TripAssistant;
+  service: TravelService;
 }
 
 type ButtonActionArgs = SlackActionMiddlewareArgs<BlockAction<ButtonAction>> & AllMiddlewareArgs;
@@ -45,9 +43,9 @@ function onButtonClick(handle: ButtonClickHandler) {
   };
 }
 
-export async function startSlackBot({ botToken, appToken, store, assistant }: SlackBotSettings): Promise<App> {
+export async function startSlackBot({ botToken, appToken, service }: SlackBotSettings): Promise<App> {
   const app = new App({ token: botToken, appToken, socketMode: true, logLevel: LogLevel.WARN });
-  const handlers = createSlackHandlers({ store, assistant });
+  const handlers = createSlackHandlers({ service });
 
   app.message(async ({ message, client }) => {
     if (message.subtype !== undefined) return;

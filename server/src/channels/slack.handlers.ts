@@ -7,9 +7,9 @@ import {
   type ProposalView,
   type ResolveProposalResponse,
 } from '@app/shared';
-import type { TripAssistant } from '../core/assistant.js';
+import type { TravelService } from '../core/travelService.js';
+import { SeenEvents } from './seenEvents.js';
 import { NotFoundError } from '../core/errors.js';
-import type { ConversationStore } from '../core/store.js';
 import {
   buildBookingProgressContent,
   buildNewTripContent,
@@ -77,8 +77,8 @@ interface Delivery {
 }
 
 interface SlackHandlerDependencies {
-  store: ConversationStore;
-  assistant: TripAssistant;
+  service: TravelService;
+  seenEvents?: SeenEvents;
   log?: Pick<Console, 'warn' | 'error'>;
   pause?: (milliseconds: number) => Promise<void>;
 }
@@ -115,7 +115,7 @@ function rememberWithLimit<TKey, TValue>(map: Map<TKey, TValue>, key: TKey, valu
   if (!oldest.done) map.delete(oldest.value);
 }
 
-export function createSlackHandlers({ store, assistant, log = console, pause = defaultPause }: SlackHandlerDependencies) {
+export function createSlackHandlers({ service, seenEvents = new SeenEvents(), log = console, pause = defaultPause }: SlackHandlerDependencies) {
   const proposalCards = new Map<string, ProposalCardRef>();
   const currentSessions = new Map<string, string>();
 
@@ -153,7 +153,7 @@ export function createSlackHandlers({ store, assistant, log = console, pause = d
   }
 
   function isFirstDelivery(eventKey: string): boolean {
-    return store.markEventSeen(eventKey);
+    return seenEvents.markSeen(eventKey);
   }
 
   function parseOrWarn<T>(parsed: T | undefined, description: string): T | undefined {
@@ -209,10 +209,10 @@ export function createSlackHandlers({ store, assistant, log = console, pause = d
     const { sessionTs, isNew } = currentSession(channel, ts);
     const ownerId = toSlackOwnerId(slackUserId);
     const conversationId = toSlackConversationId(channel, sessionTs);
-    store.getOrCreateConversation(ownerId, conversationId);
+    service.openConversation(ownerId, conversationId);
 
     const placeholder = await post('post thinking placeholder', chat, { channel, text: THINKING_TEXT });
-    const { reply, updatedProposal } = await assistant.handleMessage(ownerId, conversationId, text);
+    const { reply, updatedProposal } = await service.sendMessage(ownerId, conversationId, text);
     const content = buildReplyContent(reply, conversationId, { showSessionHint: isNew });
     const shown = await showReply(chat, channel, placeholder.ts, content);
 
@@ -230,7 +230,7 @@ export function createSlackHandlers({ store, assistant, log = console, pause = d
     proposalId: string,
   ): ResolveProposalResponse | undefined {
     try {
-      return assistant.resolveProposal(toSlackOwnerId(click.userId), conversationId, proposalId, click.decision);
+      return service.resolveProposal(toSlackOwnerId(click.userId), conversationId, proposalId, click.decision);
     } catch (error) {
       if (error instanceof NotFoundError) return undefined;
       throw error;

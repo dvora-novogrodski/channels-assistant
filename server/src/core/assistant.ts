@@ -11,9 +11,10 @@ import {
 } from '@app/shared';
 import { NotFoundError } from './errors.js';
 import { LlmError, type Llm, type LlmMessage, type LlmReply } from './llm/types.js';
-import { applyDecision, parseDecision } from './proposals.js';
-import type { Conversation, ConversationStore, Proposal, StoredMessage, User, UserPreferences } from './store.js';
+import { decide, parseDecision } from './proposals.js';
+import type { Conversation, ConversationStore, Proposal, StoredMessage, UserPreferences } from './store.js';
 import { executeToolCall, toolSpecs, type ToolContext, type ToolEffect } from './tools.js';
+import { TurnLock } from './turnLock.js';
 
 export const MAX_TOOL_STEPS = 6;
 export const HISTORY_WINDOW = 24;
@@ -39,6 +40,12 @@ export interface AssistantDependencies {
   llm: Llm;
   now?: () => Date;
   demoFailures?: boolean;
+  turnLock?: TurnLock;
+}
+
+interface DecisionSource {
+  typedText?: string;
+  paymentMethodId?: string;
 }
 
 class TurnLimitError extends Error {}
@@ -48,32 +55,32 @@ export class TripAssistant {
   private readonly llm: Llm;
   private readonly now: () => Date;
   private readonly demoFailures: boolean;
+  private readonly turnLock: TurnLock;
 
-  constructor({ store, llm, now = () => new Date(), demoFailures = false }: AssistantDependencies) {
+  constructor({ store, llm, now = () => new Date(), demoFailures = false, turnLock = new TurnLock() }: AssistantDependencies) {
     this.store = store;
     this.llm = llm;
     this.now = now;
     this.demoFailures = demoFailures;
+    this.turnLock = turnLock;
   }
 
   async handleMessage(userId: string, conversationId: string, text: string): Promise<TurnResult> {
     const conversation = this.store.getConversation(userId, conversationId);
-    if (conversation.busy) return { reply: this.errorReply('busy') };
+    if (!this.turnLock.tryAcquire(conversationId)) return { reply: this.errorReply('busy') };
 
-    const decision = parseDecision(text);
-    const pendingProposal = findPendingProposal(conversation);
-    if (decision && pendingProposal) {
-      const { reply } = this.resolve(userId, conversation, pendingProposal, decision, { typedText: text });
-      return { reply, updatedProposal: { ...pendingProposal } };
-    }
-
-    conversation.busy = true;
     try {
+      const decision = parseDecision(text);
+      const pendingProposal = findPendingProposal(conversation);
+      if (decision && pendingProposal) {
+        const { reply, proposal } = this.resolve(userId, conversationId, pendingProposal, decision, { typedText: text });
+        return { reply, updatedProposal: proposal };
+      }
       return await this.runTurn(userId, conversation, text);
     } catch (error) {
       return { reply: this.errorReply(toErrorKind(error)) };
     } finally {
-      conversation.busy = false;
+      this.turnLock.release(conversationId);
     }
   }
 
@@ -87,32 +94,33 @@ export class TripAssistant {
     const conversation = this.store.getConversation(userId, conversationId);
     const proposal = conversation.proposals.find(({ id }) => id === proposalId);
     if (!proposal) throw new NotFoundError('Proposal not found');
-    if (conversation.busy) return { proposal: { ...proposal }, reply: this.errorReply('busy'), changed: false };
+    if (this.turnLock.isHeld(conversationId)) return { proposal, reply: this.errorReply('busy'), changed: false };
 
-    const { reply, changed } = this.resolve(userId, conversation, proposal, decision, { paymentMethodId });
-    return { proposal: { ...proposal }, reply, changed };
+    return this.resolve(userId, conversationId, proposal, decision, { paymentMethodId });
   }
 
   private resolve(
     userId: string,
-    conversation: Conversation,
+    conversationId: string,
     proposal: Proposal,
     decision: ProposalDecision,
-    options: { typedText?: string; paymentMethodId?: string } = {},
-  ): { reply: ChatMessage; changed: boolean } {
-    const { typedText, paymentMethodId } = options;
-    const outcome = applyDecision(this.store.getUser(userId), proposal, decision, this.now(), paymentMethodId);
+    { typedText, paymentMethodId }: DecisionSource,
+  ): ResolveProposalResponse {
+    const outcome = decide(proposal, decision, this.now(), paymentMethodId);
     const reply = this.message('assistant', outcome.text);
-    if (!outcome.changed) return { reply: withoutProposalId(reply), changed: false };
+    if (!outcome.changed) return { reply: withoutProposalId(reply), proposal: outcome.proposal, changed: false };
 
-    const buttonNote = `(I pressed ${decision === 'confirm' ? 'Confirm' : 'Cancel'} on the ${proposal.destinationName} proposal.)`;
-    conversation.llmHistory.push(
-      { role: 'user', text: typedText ?? buttonNote },
-      { role: 'assistant', text: outcome.text, toolCalls: [] },
-    );
-    if (typedText) this.store.appendMessage(conversation, this.message('user', typedText));
-    this.store.appendMessage(conversation, reply);
-    return { reply: withoutProposalId(reply), changed: true };
+    const typedMessages = typedText ? [this.message('user', typedText)] : [];
+    this.store.commit(userId, conversationId, {
+      llmMessages: [
+        { role: 'user', text: typedText ?? describeButtonPress(decision, proposal) },
+        { role: 'assistant', text: outcome.text, toolCalls: [] },
+      ],
+      messages: [...typedMessages, reply],
+      proposals: [outcome.proposal],
+      booking: outcome.booking,
+    });
+    return { reply: withoutProposalId(reply), proposal: outcome.proposal, changed: true };
   }
 
   private async runTurn(userId: string, conversation: Conversation, text: string): Promise<TurnResult> {
@@ -126,24 +134,26 @@ export class TripAssistant {
       today: this.now().toISOString().slice(0, 10),
     };
     const working: LlmMessage[] = [...conversation.llmHistory, { role: 'user', text }];
-    const turnStart = working.length;
+    const turnStart = conversation.llmHistory.length;
     const effects: ToolEffect[] = [];
 
     const finalReply = await this.runToolLoop(working, effects, context);
 
-    conversation.llmHistory = working;
-    const { proposal, superseded } = applyEffects(conversation, context.user, effects);
-    this.store.appendMessage(conversation, this.message('user', text));
+    const turnMessages = working.slice(turnStart);
+    const { proposal, superseded, preferences } = summarizeEffects(conversation, effects);
     const { text: extractedText, quickReplies } = extractQuickReplies(finalReply.text ?? '');
     const replyText = extractedText || defaultReplyText(proposal);
-    const destinations = proposal ? undefined : findSuggestedDestinations(working.slice(turnStart));
+    const destinations = proposal ? undefined : findSuggestedDestinations(turnMessages);
     const reply = { ...this.message('assistant', replyText, proposal?.id), quickReplies, destinations };
-    this.store.appendMessage(conversation, reply);
 
-    return {
-      reply: { ...withoutProposalId(reply), proposal: proposal && { ...proposal } },
-      updatedProposal: superseded && { ...superseded },
-    };
+    this.store.commit(userId, conversation.id, {
+      llmMessages: turnMessages,
+      messages: [this.message('user', text), reply],
+      proposals: [superseded, proposal].filter((item): item is Proposal => item !== undefined),
+      preferences,
+    });
+
+    return { reply: { ...withoutProposalId(reply), proposal }, updatedProposal: superseded };
   }
 
   private async runToolLoop(working: LlmMessage[], effects: ToolEffect[], context: ToolContext): Promise<LlmReply> {
@@ -177,18 +187,29 @@ function findPendingProposal(conversation: Conversation): Proposal | undefined {
   return conversation.proposals.find(({ status }) => status === 'proposed');
 }
 
-function applyEffects(conversation: Conversation, user: User, effects: ToolEffect[]) {
-  for (const effect of effects) {
-    if (effect.type === 'savePreferences') user.preferences = { ...user.preferences, ...effect.preferences };
-  }
+interface TurnEffects {
+  proposal?: Proposal;
+  superseded?: Proposal;
+  preferences?: UserPreferences;
+}
 
-  const latest = effects.flatMap((effect) => (effect.type === 'propose' ? [effect.proposal] : [])).at(-1);
-  if (!latest) return {};
+function summarizeEffects(conversation: Conversation, effects: ToolEffect[]): TurnEffects {
+  const preferences = mergePreferenceEffects(effects);
+  const proposal = effects.flatMap((effect) => (effect.type === 'propose' ? [effect.proposal] : [])).at(-1);
+  if (!proposal) return { preferences };
 
-  const superseded = findPendingProposal(conversation);
-  if (superseded) superseded.status = 'superseded';
-  conversation.proposals.push(latest);
-  return { proposal: latest, superseded };
+  const pending = findPendingProposal(conversation);
+  const superseded: Proposal | undefined = pending && { ...pending, status: 'superseded' };
+  return { proposal, superseded, preferences };
+}
+
+function mergePreferenceEffects(effects: ToolEffect[]): UserPreferences | undefined {
+  const saved = effects.flatMap((effect) => (effect.type === 'savePreferences' ? [effect.preferences] : []));
+  return saved.length ? Object.assign({}, ...saved) : undefined;
+}
+
+function describeButtonPress(decision: ProposalDecision, proposal: Proposal): string {
+  return `(I pressed ${decision === 'confirm' ? 'Confirm' : 'Cancel'} on the ${proposal.destinationName} proposal.)`;
 }
 
 const SearchOutputSchema = z.object({

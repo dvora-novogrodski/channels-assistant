@@ -29,7 +29,7 @@ for (const text of turns) {
   if (reply.error) console.log('  [error]', JSON.stringify(reply.error));
 }
 
-const toolCalls = conversation.llmHistory.flatMap((message) =>
+const toolCalls = store.getConversation(userId, conversation.id).llmHistory.flatMap((message) =>
   message.role === 'assistant' ? message.toolCalls.map(({ name, args }) => `${name}(${JSON.stringify(args)})`) : [],
 );
 console.log('\nTool calls:', toolCalls.join(', ') || 'none');

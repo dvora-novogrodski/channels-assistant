@@ -1,11 +1,13 @@
 import { randomInt } from 'node:crypto';
 import { SAVED_PAYMENT_METHODS, formatCount, formatUsd, type ProposalDecision } from '@app/shared';
-import type { Proposal, User } from './store.js';
+import type { Booking, Proposal } from './store.js';
 import { issueTickets } from './tickets.js';
 
 export interface DecisionOutcome {
   changed: boolean;
   text: string;
+  proposal: Proposal;
+  booking?: Booking;
 }
 
 const DECISION_PATTERNS: Record<ProposalDecision, RegExp> = {
@@ -21,31 +23,37 @@ export function parseDecision(text: string): ProposalDecision | undefined {
   return undefined;
 }
 
-export function applyDecision(
-  user: User,
+export function decide(
   proposal: Proposal,
   decision: ProposalDecision,
   now: Date,
   paymentMethodId?: string,
 ): DecisionOutcome {
   const targetStatus = decision === 'confirm' ? 'confirmed' : 'cancelled';
-  if (proposal.status === targetStatus) return { changed: false, text: describeOutcome(proposal) };
+  if (proposal.status === targetStatus) return unchanged(proposal, describeOutcome(proposal));
   if (proposal.status !== 'proposed') {
-    return { changed: false, text: `That proposal is no longer active (it was ${proposal.status}).` };
+    return unchanged(proposal, `That proposal is no longer active (it was ${proposal.status}).`);
   }
+  if (decision === 'cancel') return cancel(proposal);
+  return confirm(proposal, now, paymentMethodId);
+}
 
-  if (decision === 'cancel') {
-    proposal.status = 'cancelled';
-    return { changed: true, text: describeOutcome(proposal) };
-  }
+function unchanged(proposal: Proposal, text: string): DecisionOutcome {
+  return { changed: false, text, proposal };
+}
 
-  const paymentMethod = SAVED_PAYMENT_METHODS.find(({ id }) => id === paymentMethodId);
-  if (paymentMethod) proposal.paymentMethod = paymentMethod.label;
-  proposal.status = 'confirmed';
-  proposal.bookingRef = createBookingRef();
-  proposal.tickets = issueTickets(proposal);
-  user.bookings.push({ ...proposal, bookingRef: proposal.bookingRef, confirmedAt: now.toISOString() });
-  return { changed: true, text: describeOutcome(proposal) };
+function cancel(proposal: Proposal): DecisionOutcome {
+  const cancelled: Proposal = { ...proposal, status: 'cancelled' };
+  return { changed: true, text: describeOutcome(cancelled), proposal: cancelled };
+}
+
+function confirm(proposal: Proposal, now: Date, paymentMethodId: string | undefined): DecisionOutcome {
+  const paymentMethod = SAVED_PAYMENT_METHODS.find(({ id }) => id === paymentMethodId)?.label ?? proposal.paymentMethod;
+  const bookingRef = createBookingRef();
+  const pending = { ...proposal, paymentMethod, bookingRef };
+  const confirmed: Proposal = { ...pending, status: 'confirmed', tickets: issueTickets(pending) };
+  const booking: Booking = { ...confirmed, bookingRef, confirmedAt: now.toISOString() };
+  return { changed: true, text: describeOutcome(confirmed), proposal: confirmed, booking };
 }
 
 function describeOutcome(proposal: Proposal): string {

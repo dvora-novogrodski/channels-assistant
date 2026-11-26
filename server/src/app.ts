@@ -3,17 +3,15 @@ import path from 'node:path';
 import express, { type Express } from 'express';
 import type { ApiErrorBody } from '@app/shared';
 import { createWebRouter } from './channels/web.router.js';
-import type { TripAssistant } from './core/assistant.js';
-import type { ConversationStore } from './core/store.js';
+import type { TravelService } from './core/travelService.js';
 import { errorHandler } from './http/errorHandler.middleware.js';
 
 interface AppDependencies {
-  store: ConversationStore;
-  assistant: TripAssistant;
+  service: TravelService;
   webDistPath?: string;
 }
 
-export function createApp({ store, assistant, webDistPath }: AppDependencies): Express {
+export function createApp({ service, webDistPath }: AppDependencies): Express {
   const app = express();
 
   app.use(express.json({ limit: '16kb' }));
@@ -21,7 +19,7 @@ export function createApp({ store, assistant, webDistPath }: AppDependencies): E
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true });
   });
-  app.use('/api', createWebRouter({ store, assistant }));
+  app.use('/api', createWebRouter({ service }));
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Not found' } satisfies ApiErrorBody);
   });

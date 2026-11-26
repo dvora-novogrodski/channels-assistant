@@ -19,6 +19,7 @@ import { loadConfig } from '../src/config.js';
 import { TripAssistant } from '../src/core/assistant.js';
 import { LlmError } from '../src/core/llm/types.js';
 import { InMemoryConversationStore } from '../src/core/store.js';
+import { TravelService } from '../src/core/travelService.js';
 import { sampleProposal } from './fixtures.js';
 import { ScriptedLlm, textReply, toolReply } from './scriptedLlm.js';
 
@@ -85,7 +86,7 @@ describe('Slack handlers', () => {
     llm = new ScriptedLlm();
     chat = new FakeSlackChat();
     const assistant = new TripAssistant({ store, llm, now: () => new Date('2027-01-10T12:00:00Z') });
-    handlers = createSlackHandlers({ store, assistant, log: SILENT_LOG, pause: () => Promise.resolve() });
+    handlers = createSlackHandlers({ service: new TravelService({ store, assistant }), log: SILENT_LOG, pause: () => Promise.resolve() });
   });
 
   it('replies in the DM itself by replacing a placeholder, with a hint and a New trip button', async () => {
@@ -304,7 +305,7 @@ describe('Slack reliability fixes', () => {
     const store = new InMemoryConversationStore();
     const llm = new ScriptedLlm(...replies);
     const assistant = new TripAssistant({ store, llm, now: () => new Date('2027-01-10T12:00:00Z') });
-    const handlers = createSlackHandlers({ store, assistant, log: SILENT_LOG, pause: () => Promise.resolve() });
+    const handlers = createSlackHandlers({ service: new TravelService({ store, assistant }), log: SILENT_LOG, pause: () => Promise.resolve() });
     return { store, handlers };
   }
 
